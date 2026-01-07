@@ -63,3 +63,60 @@ INSERT INTO license_feature (customer_id, product_id, feature_id, feature_value)
 INSERT INTO license_feature (customer_id, product_id, feature_id, feature_value) VALUES
 (3, 2, 5, '200'),
 (3, 2, 6, 'true');
+
+-- Machines
+-- Acme Corporation machines
+INSERT INTO machine (machine_id, customer_id, machine_code, user_name) VALUES
+(1, 1, 'ACME-WS-001', 'jsmith'),
+(2, 1, 'ACME-WS-002', 'bjones'),
+(3, 1, 'ACME-WS-003', 'mwilson'),
+(4, 1, 'ACME-LAPTOP-001', 'jsmith'),
+(5, 1, 'ACME-SERVER-01', 'admin');
+
+-- TechStart machines
+INSERT INTO machine (machine_id, customer_id, machine_code, user_name) VALUES
+(6, 2, 'TS-DEV-01', 'sarah'),
+(7, 2, 'TS-DEV-02', 'alex'),
+(8, 2, 'TS-DEV-03', 'chris');
+
+-- Global Industries machines
+INSERT INTO machine (machine_id, customer_id, machine_code, user_name) VALUES
+(9, 3, 'GI-NYC-WS001', 'mchen'),
+(10, 3, 'GI-NYC-WS002', 'lpark'),
+(11, 3, 'GI-LA-WS001', 'dkim'),
+(12, 3, 'GI-CHI-WS001', 'rjohnson');
+
+-- Registrations (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version)
+-- Note: registration_hash is a placeholder for demo purposes
+
+-- Acme DataMapper Pro registrations (5 of 25 seats used)
+INSERT INTO registration (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version) VALUES
+(1, 1, '2025-12-31', 'demo-hash-acme-dm-001', '2024-01-15', '2024-12-01', '3.2.1'),
+(2, 1, '2025-12-31', 'demo-hash-acme-dm-002', '2024-02-01', '2024-11-15', '3.2.0'),
+(3, 1, '2025-12-31', 'demo-hash-acme-dm-003', '2024-03-10', '2024-12-05', '3.2.1'),
+(4, 1, '2025-12-31', 'demo-hash-acme-dm-004', '2024-06-01', '2024-12-01', '3.1.0'),
+(5, 1, '2025-12-31', 'demo-hash-acme-dm-005', '2024-01-15', '2024-10-20', '3.2.1');
+
+-- Acme ReportBuilder registrations (3 of 10 seats used)
+INSERT INTO registration (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version) VALUES
+(1, 2, '9998-12-31', 'demo-hash-acme-rb-001', '2024-02-01', '2024-11-01', '2.0.0'),
+(2, 2, '9998-12-31', 'demo-hash-acme-rb-002', '2024-02-15', '2024-10-15', '2.0.0'),
+(5, 2, '9998-12-31', 'demo-hash-acme-rb-003', '2024-03-01', '2024-12-01', '2.0.0');
+
+-- TechStart DataMapper Pro registrations (3 of 10 seats used)
+INSERT INTO registration (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version) VALUES
+(6, 1, '2025-06-01', 'demo-hash-ts-dm-001', '2024-06-15', '2024-12-01', '3.2.1'),
+(7, 1, '2025-06-01', 'demo-hash-ts-dm-002', '2024-07-01', '2024-11-20', '3.2.1'),
+(8, 1, '2025-06-01', 'demo-hash-ts-dm-003', '2024-08-01', '2024-12-05', '3.2.0');
+
+-- Global Industries DataMapper Pro registrations (4 of 50 seats used, version-locked to 2.5)
+INSERT INTO registration (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version) VALUES
+(9, 1, '2024-12-31', 'demo-hash-gi-dm-001', '2023-01-20', '2024-06-15', '2.5.0'),
+(10, 1, '2024-12-31', 'demo-hash-gi-dm-002', '2023-02-01', '2024-07-01', '2.5.0'),
+(11, 1, '2024-12-31', 'demo-hash-gi-dm-003', '2023-03-15', '2024-08-20', '2.4.0'),
+(12, 1, '2024-12-31', 'demo-hash-gi-dm-004', '2023-04-01', '2024-05-10', '2.5.0');
+
+-- Global Industries ReportBuilder registrations (2 of 5 seats used)
+INSERT INTO registration (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version) VALUES
+(9, 2, '2025-01-01', 'demo-hash-gi-rb-001', '2024-12-01', '2024-12-15', '2.0.0'),
+(10, 2, '2025-01-01', 'demo-hash-gi-rb-002', '2024-12-05', '2024-12-10', '2.0.0');
