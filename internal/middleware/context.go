@@ -13,6 +13,7 @@ const ThemeCookieName = "theme"
 // Context keys
 type themeKey struct{}
 type versionKey struct{}
+type demoModeKey struct{}
 
 // ValidThemes defines allowed theme values
 var validThemes = map[string]bool{"light": true, "dark": true}
@@ -67,4 +68,23 @@ func GetVersion(ctx context.Context) string {
 // GetRepoURL returns the project repository URL.
 func GetRepoURL() string {
 	return version.RepoURL
+}
+
+// DemoMode adds the demo mode flag to the request context.
+func DemoMode(enabled bool) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ctx := context.WithValue(c.Request().Context(), demoModeKey{}, enabled)
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c)
+		}
+	}
+}
+
+// IsDemoMode returns true if running in demo mode.
+func IsDemoMode(ctx context.Context) bool {
+	if v, ok := ctx.Value(demoModeKey{}).(bool); ok {
+		return v
+	}
+	return false
 }

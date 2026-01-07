@@ -1,6 +1,18 @@
 package pages
 
-import "winsbygroup.com/regserver/templates/components"
+import (
+	"context"
+
+	"winsbygroup.com/regserver/internal/middleware"
+	"winsbygroup.com/regserver/templates/components"
+)
+
+func demoValue(ctx context.Context) string {
+	if middleware.IsDemoMode(ctx) {
+		return "demo"
+	}
+	return ""
+}
 
 templ Login(errorMsg string) {
 	<!DOCTYPE html>
@@ -33,6 +45,7 @@ templ Login(errorMsg string) {
 								name="api_key"
 								placeholder="Enter your API key"
 								class="input input-bordered w-full"
+								value={ demoValue(ctx) }
 								required
 								autofocus
 							/>
