@@ -1,0 +1,50 @@
+package components
+
+import (
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+)
+
+// expiredClass adds styling for expired dates
+func expiredClass(date, filterDate string) string {
+	if date != "" && date < filterDate {
+		return "date-expired"
+	}
+	return ""
+}
+
+templ ExpirationsTable(expirations []vm.ExpiredLicense, beforeDate string) {
+	if len(expirations) == 0 {
+		@EmptyState("No expired licenses found for the selected date.")
+	} else {
+		<div class="overflow-x-auto">
+			<table class="table table-zebra">
+				<thead>
+					<tr>
+						<th>Customer</th>
+						<th>Contact</th>
+						<th>Email</th>
+						<th>Product</th>
+						<th>Expiration Date</th>
+						<th>Maint. End</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, exp := range expirations {
+						<tr>
+							<td class="font-medium">{ exp.CustomerName }</td>
+							<td>{ exp.ContactName }</td>
+							<td>
+								if exp.Email != "" {
+									<a href={ templ.SafeURL("mailto:" + exp.Email) } class="link link-primary">{ exp.Email }</a>
+								}
+							</td>
+							<td>{ exp.ProductName }</td>
+							<td class={ expiredClass(exp.ExpirationDate, beforeDate) }>{ exp.ExpirationDate }</td>
+							<td class={ expiredClass(exp.MaintExpirationDate, beforeDate) }>{ exp.MaintExpirationDate }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}

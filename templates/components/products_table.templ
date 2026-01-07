@@ -1,0 +1,145 @@
+package components
+
+import (
+	"fmt"
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+)
+
+templ ProductsTable(products []vm.Product) {
+	if len(products) == 0 {
+		@EmptyState("No products found. Click 'Add Product' to create one.")
+	} else {
+		<div class="overflow-x-auto">
+			<table class="table table-zebra">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>GUID</th>
+						<th>Latest Version</th>
+						<th>Download URL</th>
+						<th class="w-40">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, product := range products {
+						<tr>
+							<td class="font-medium">{ product.ProductName }</td>
+							<td class="font-mono text-sm">{ product.ProductGUID }</td>
+							<td>{ product.LatestVersion }</td>
+							<td>
+								@CreateLink(product.DownloadURL)
+							</td>
+							<td>
+								<div class="flex gap-1">
+									<button
+										class="btn btn-ghost btn-xs"
+										hx-get={ fmt.Sprintf("/web/products/%d/features", product.ProductID) }
+										hx-target="#modal-content"
+										hx-swap="innerHTML"
+										title="Manage Features"
+									>
+										@IconList("h-4 w-4")
+									</button>
+									<button
+										class="btn btn-ghost btn-xs"
+										hx-get={ fmt.Sprintf("/web/products/%d/edit", product.ProductID) }
+										hx-target="#modal-content"
+										hx-swap="innerHTML"
+										title="Edit"
+									>
+										@IconEdit("h-4 w-4")
+									</button>
+									<button
+										class="btn btn-ghost btn-xs text-error"
+										hx-delete={ fmt.Sprintf("/web/products/%d", product.ProductID) }
+										hx-target="#products-table-container"
+										hx-swap="innerHTML"
+										hx-confirm={ fmt.Sprintf("Are you sure you want to delete '%s'? This will also delete all features and registrations.", product.ProductName) }
+										title="Delete"
+									>
+										@IconTrash("h-4 w-4")
+									</button>
+								</div>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+// ProductFormData holds form data with optional field errors
+type ProductFormData struct {
+	Product     *vm.Product
+	DefaultGUID string            // pre-generated GUID for new products
+	Errors      map[string]string // field name -> error message
+}
+
+templ ProductForm(product *vm.Product) {
+	@ProductFormWithErrors(ProductFormData{Product: product})
+}
+
+templ ProductFormWithErrors(data ProductFormData) {
+	<h3 class="font-bold text-lg mb-4">
+		if data.Product == nil {
+			New Product
+		} else {
+			Edit Product
+		}
+	</h3>
+	<form
+		if data.Product == nil {
+			hx-post="/web/products"
+		} else {
+			hx-put={ fmt.Sprintf("/web/products/%d", data.Product.ProductID) }
+		}
+		hx-target="#products-table-container"
+		hx-swap="innerHTML"
+	>
+		<div class="space-y-4">
+			@formField("product_name", "Product Name *", "text", getProductName(data.Product), "", true, data.Product == nil, "", data.Errors)
+			@formField("product_guid", "Product GUID *", "text", getProductGUID(data.Product, data.DefaultGUID), "", true, false, "font-mono", data.Errors)
+			@formField("latest_version", "Latest Version", "text", getLatestVersion(data.Product), "e.g., 1.0.0", false, false, "", data.Errors)
+			@formField("download_url", "Download URL", "url", getDownloadURL(data.Product), "https://...", false, false, "", data.Errors)
+		</div>
+		<div class="modal-action">
+			<button type="button" class="btn" onclick="closeModal()">Cancel</button>
+			<button type="submit" class="btn btn-primary">
+				if data.Product == nil {
+					Create
+				} else {
+					Save
+				}
+			</button>
+		</div>
+	</form>
+}
+
+func getProductName(p *vm.Product) string {
+	if p == nil {
+		return ""
+	}
+	return p.ProductName
+}
+
+func getProductGUID(p *vm.Product, defaultGUID string) string {
+	if p == nil {
+		return defaultGUID
+	}
+	return p.ProductGUID
+}
+
+func getLatestVersion(p *vm.Product) string {
+	if p == nil {
+		return ""
+	}
+	return p.LatestVersion
+}
+
+func getDownloadURL(p *vm.Product) string {
+	if p == nil {
+		return ""
+	}
+	return p.DownloadURL
+}

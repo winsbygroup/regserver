@@ -1,0 +1,57 @@
+package components
+
+import (
+	"fmt"
+	"strings"
+)
+
+// CreateLink renders an anchor tag if the URL is not empty.
+// Opens in a new tab with truncated display for long URLs.
+templ CreateLink(url string) {
+	if url != "" {
+		<a href={ templ.SafeURL(url) } target="_blank" class="link link-primary truncate max-w-xs block">{ url }</a>
+	}
+}
+
+templ formField(name, label, inputType, value, placeholder string, required, autofocus bool, extraClass string, errors map[string]string) {
+	<div>
+		<label class="label">{ label }</label>
+		<input
+			type={ inputType }
+			name={ name }
+			class={ "input input-bordered input-lg w-full", extraClass, templ.KV("input-error", errors[name] != "") }
+			value={ value }
+			placeholder={ placeholder }
+			if required {
+				required
+			}
+			if autofocus {
+				autofocus
+			}
+		/>
+		if errors[name] != "" {
+			<label class="label">
+				<span class="label-text-alt text-error">{ errors[name] }</span>
+			</label>
+		}
+	</div>
+}
+
+// eventScript creates a templ.ComponentScript for calling a JavaScript function
+// with the given arguments. Strings are automatically quoted for JavaScript.
+func eventScript(funcName string, args ...any) templ.ComponentScript {
+	argStrs := make([]string, len(args))
+	for i, arg := range args {
+		switch v := arg.(type) {
+		case string:
+			// Use single quotes for JS strings (HTML attributes use double quotes)
+			escaped := strings.ReplaceAll(v, "'", "\\'")
+			argStrs[i] = fmt.Sprintf("'%s'", escaped)
+		default:
+			argStrs[i] = fmt.Sprintf("%v", v)
+		}
+	}
+	return templ.ComponentScript{
+		Call: fmt.Sprintf("%s(%s)", funcName, strings.Join(argStrs, ", ")),
+	}
+}

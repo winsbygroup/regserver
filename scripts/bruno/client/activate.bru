@@ -1,0 +1,23 @@
+meta {
+  name: Activate Product
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/activate
+  body: json
+  auth: none
+}
+
+headers {
+  X-License-Key: {{licenseKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "machineCode": "TEST-MACHINE-001",
+    "userName": "Test User"
+  }
+}

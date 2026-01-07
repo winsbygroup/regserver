@@ -1,0 +1,358 @@
+package components
+
+import (
+	"fmt"
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+)
+
+// dateExpiredIf returns "date-expired" class if condition is true
+func dateExpiredIf(expired bool) string {
+	if expired {
+		return "date-expired"
+	}
+	return ""
+}
+
+templ LicensesTable(customerID int64, licenses []vm.License) {
+	<div class="card bg-base-100 shadow-sm">
+		<div class="card-body">
+			<div class="flex justify-between items-center mb-4">
+				<h2 class="card-title text-lg">Licenses <span class="text-sm font-normal text-base-content/60">(select row for details)</span></h2>
+				<button
+					class="btn btn-primary btn-sm"
+					hx-get={ fmt.Sprintf("/web/licenses/%d/new", customerID) }
+					hx-target="#modal-content"
+					hx-swap="innerHTML"
+				>
+					@IconPlus("h-4 w-4 mr-1")
+					Add License
+				</button>
+			</div>
+			if len(licenses) == 0 {
+				@EmptyState("No licenses found. Click 'Add License' to create one.")
+			} else {
+				<div class="overflow-x-auto">
+					<table id="registrations-table" class="table table-zebra table-sm">
+						<thead>
+							<tr>
+								<th>Product</th>
+								<th>Allowed</th>
+								<th>Term</th>
+								<th>Subscription</th>
+								<th>Starts</th>
+								<th>Expires</th>
+								<th>Maintenance</th>
+								<th class="w-32">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, lic := range licenses {
+								<tr
+									class="table-row-selectable"
+									data-product-id={ fmt.Sprintf("%d", lic.ProductID) }
+									onclick={ eventScript("selectProduct", lic.ProductID, lic.LicenseKey) }
+								>
+									<td class="font-medium">{ lic.ProductName }</td>
+									<td>{ fmt.Sprintf("%d", lic.LicenseCount) }</td>
+									<td>{ fmt.Sprintf("%d mo", lic.LicenseTerm) }</td>
+									<td>{ lic.SubscriptionText() }</td>
+									<td>{ lic.StartDate }</td>
+									<td class={ dateExpiredIf(lic.IsExpired()) }>{ lic.ExpirationDate }</td>
+									<td class={ dateExpiredIf(lic.IsMaintExpired()) }>{ lic.MaintExpirationDate }</td>
+									<td>
+										<div class="flex gap-1" onclick="event.stopPropagation()">
+											<button
+												class="btn btn-ghost btn-xs"
+												onclick={ eventScript("openMachinesModal", customerID, lic.ProductID) }
+												title="View Machines"
+											>
+												@IconDesktop("h-4 w-4")
+											</button>
+											<button
+												class="btn btn-ghost btn-xs"
+												hx-get={ fmt.Sprintf("/web/licenses/%d/%d/edit", customerID, lic.ProductID) }
+												hx-target="#modal-content"
+												hx-swap="innerHTML"
+												title="Edit"
+											>
+												@IconEdit("h-4 w-4")
+											</button>
+											<button
+												class="btn btn-ghost btn-xs text-error"
+												hx-delete={ fmt.Sprintf("/web/licenses/%d/%d", customerID, lic.ProductID) }
+												hx-target="#registrations-container"
+												hx-swap="innerHTML"
+												hx-confirm={ fmt.Sprintf("Are you sure you want to delete the '%s' license? This will also remove all machine registrations and invalidate the liense key", lic.ProductName) }
+												title="Delete"
+											>
+												@IconTrash("h-4 w-4")
+											</button>
+										</div>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<!-- License Key Display -->
+				<div class="mt-4 hidden" id="license-key-container">
+					<label class="label">
+						<span class="label-text font-medium">License Key<span id="license-key-product"></span></span>
+					</label>
+					<div class="flex gap-2 items-center">
+						<code id="license-key-display" class="license-key flex-1"></code>
+						<button
+							class="btn btn-ghost btn-sm"
+							onclick="copyToClipboard(document.getElementById('license-key-display').textContent)"
+							title="Copy to clipboard"
+						>
+							@IconCopy("h-5 w-5")
+						</button>
+					</div>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+// LicenseFormData holds form data with optional field errors
+type LicenseFormData struct {
+	License    *vm.License
+	CustomerID int64
+	Products   []vm.Product
+	Errors     map[string]string // field name -> error message
+}
+
+templ LicenseForm(license *vm.License, customerID int64, products []vm.Product) {
+	@LicenseFormWithErrors(LicenseFormData{License: license, CustomerID: customerID, Products: products})
+}
+
+templ LicenseFormWithErrors(data LicenseFormData) {
+	if data.License == nil && len(data.Products) == 0 {
+		<h3 class="font-bold text-lg mb-4">New License</h3>
+		<p class="text-base-content/70 mb-4">Customer already has licenses for all products.</p>
+		<div class="modal-action">
+			<button type="button" class="btn" onclick="closeModal()">Close</button>
+		</div>
+	} else {
+	<h3 class="font-bold text-lg mb-4">
+		if data.License == nil {
+			New License
+		} else {
+			Edit License
+		}
+	</h3>
+	<form
+		if data.License == nil {
+			hx-post={ fmt.Sprintf("/web/licenses/%d", data.CustomerID) }
+		} else {
+			hx-put={ fmt.Sprintf("/web/licenses/%d/%d", data.CustomerID, data.License.ProductID) }
+		}
+		hx-target="#registrations-container"
+		hx-swap="innerHTML"
+	>
+		<div class="space-y-4">
+			<div>
+				<label class="label">Product *</label>
+				<select
+					name="product_id"
+					class={ "select select-bordered select-lg w-full", templ.KV("select-error", data.Errors["product_id"] != "") }
+					required
+					if data.License != nil {
+						disabled
+					}
+				>
+					<option value="" disabled selected>-- Select a product --</option>
+					for _, product := range data.Products {
+						<option
+							value={ fmt.Sprintf("%d", product.ProductID) }
+							if data.License != nil && data.License.ProductID == product.ProductID {
+								selected
+							}
+						>
+							{ product.ProductName }
+						</option>
+					}
+				</select>
+				if data.License != nil {
+					<input type="hidden" name="product_id" value={ fmt.Sprintf("%d", data.License.ProductID) }/>
+				}
+				if data.Errors["product_id"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["product_id"] }</span>
+					</label>
+				}
+			</div>
+			<div class="grid grid-cols-2 gap-4">
+				<div>
+					<label class="label">License Count *</label>
+					<input
+						type="number"
+						name="license_count"
+						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["license_count"] != "") }
+						min="1"
+						value={ getLicenseCount(data.License) }
+						required
+					/>
+					if data.Errors["license_count"] != "" {
+						<label class="label">
+							<span class="label-text-alt text-error">{ data.Errors["license_count"] }</span>
+						</label>
+					}
+				</div>
+				<div>
+					<label class="label">License Term (months) *</label>
+					<input
+						type="number"
+						name="license_term"
+						id="license-term"
+						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["license_term"] != "") }
+						min="1"
+						value={ getLicenseTerm(data.License) }
+						required
+						onchange="calcExpirationDates()"
+					/>
+					if data.Errors["license_term"] != "" {
+						<label class="label">
+							<span class="label-text-alt text-error">{ data.Errors["license_term"] }</span>
+						</label>
+					}
+				</div>
+			</div>
+			<div>
+				<label class="label cursor-pointer justify-start gap-3">
+					<input
+						type="checkbox"
+						name="is_subscription"
+						id="is-subscription"
+						class="checkbox checkbox-lg"
+						if data.License != nil && data.License.IsSubscription {
+							checked
+						}
+						onchange="calcExpirationDates()"
+					/>
+					<span>Subscription License</span>
+				</label>
+			</div>
+			<div class="grid grid-cols-3 gap-4">
+				<div>
+					<label class="label">Start Date *</label>
+					<input
+						type="date"
+						name="start_date"
+						id="start-date"
+						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["start_date"] != "") }
+						value={ getLicenseStartDate(data.License) }
+						required
+						onchange="calcExpirationDates()"
+					/>
+					if data.Errors["start_date"] != "" {
+						<label class="label">
+							<span class="label-text-alt text-error">{ data.Errors["start_date"] }</span>
+						</label>
+					}
+				</div>
+				<div>
+					<label class="label">Expiration Date *</label>
+					<input
+						type="date"
+						name="expiration_date"
+						id="expiration-date"
+						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["expiration_date"] != "") }
+						value={ getLicenseExpirationDate(data.License) }
+						required
+					/>
+					if data.Errors["expiration_date"] != "" {
+						<label class="label">
+							<span class="label-text-alt text-error">{ data.Errors["expiration_date"] }</span>
+						</label>
+					}
+				</div>
+				<div>
+					<label class="label">Maint. Expiration *</label>
+					<input
+						type="date"
+						name="maint_expiration_date"
+						id="maint-expiration-date"
+						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["maint_expiration_date"] != "") }
+						value={ getLicenseMaintExpirationDate(data.License) }
+						required
+					/>
+					if data.Errors["maint_expiration_date"] != "" {
+						<label class="label">
+							<span class="label-text-alt text-error">{ data.Errors["maint_expiration_date"] }</span>
+						</label>
+					}
+				</div>
+			</div>
+			<div>
+				<label class="label">Max Product Version</label>
+				<input
+					type="text"
+					name="max_product_version"
+					class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["max_product_version"] != "") }
+					value={ getLicenseMaxVersion(data.License) }
+					placeholder="Leave empty for no limit"
+				/>
+				if data.Errors["max_product_version"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["max_product_version"] }</span>
+					</label>
+				}
+			</div>
+		</div>
+		<div class="modal-action">
+			<button type="button" class="btn" onclick="closeModal()">Cancel</button>
+			<button type="submit" class="btn btn-primary">
+				if data.License == nil {
+					Create
+				} else {
+					Save
+				}
+			</button>
+		</div>
+	</form>
+	}
+}
+
+func getLicenseCount(l *vm.License) string {
+	if l == nil {
+		return "1"
+	}
+	return fmt.Sprintf("%d", l.LicenseCount)
+}
+
+func getLicenseTerm(l *vm.License) string {
+	if l == nil {
+		return "12"
+	}
+	return fmt.Sprintf("%d", l.LicenseTerm)
+}
+
+func getLicenseStartDate(l *vm.License) string {
+	if l == nil {
+		return ""
+	}
+	return l.StartDate
+}
+
+func getLicenseExpirationDate(l *vm.License) string {
+	if l == nil {
+		return ""
+	}
+	return l.ExpirationDate
+}
+
+func getLicenseMaintExpirationDate(l *vm.License) string {
+	if l == nil {
+		return ""
+	}
+	return l.MaintExpirationDate
+}
+
+func getLicenseMaxVersion(l *vm.License) string {
+	if l == nil {
+		return ""
+	}
+	return l.MaxProductVersion
+}

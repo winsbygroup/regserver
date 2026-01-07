@@ -1,0 +1,149 @@
+package layouts
+
+import (
+	"winsbygroup.com/regserver/internal/middleware"
+	"winsbygroup.com/regserver/templates/components"
+)
+
+// hiddenIf returns "hidden" class if condition is true
+func hiddenIf(condition bool) string {
+	if condition {
+		return "hidden"
+	}
+	return ""
+}
+
+templ Base(title string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme={ middleware.GetTheme(ctx) }>
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="csrf-token" content={ middleware.GetCSRF(ctx) }/>
+			<title>{ title } - RegAdmin</title>
+			<!-- DaisyUI 5 + Tailwind 4 via CDN -->
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<!-- Tom Select for searchable dropdowns -->
+			<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet"/>
+			<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+			<!-- HTMX 2.x -->
+			<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+			<script src="https://cdn.jsdelivr.net/npm/htmx-ext-response-targets@2.0.4"></script>
+			<!-- Custom styles -->
+			<link href="/static/css/app.css" rel="stylesheet"/>
+		</head>
+		<body class="min-h-screen bg-base-200" hx-ext="response-targets">
+			<div class="drawer lg:drawer-open">
+				<input id="drawer-toggle" type="checkbox" class="drawer-toggle"/>
+				<div class="drawer-content flex flex-col">
+					<!-- Navbar -->
+					<div class="navbar bg-base-100 shadow-md lg:hidden">
+						<div class="flex-none">
+							<label for="drawer-toggle" class="btn btn-square btn-ghost">
+								@components.IconMenu("inline-block w-6 h-6 stroke-current")
+							</label>
+						</div>
+						<div class="flex-1">
+							<span class="text-xl font-bold">RegAdmin</span>
+						</div>
+					</div>
+					<!-- Main content -->
+					<main class="flex-1 p-4 lg:p-6">
+						{ children... }
+					</main>
+				</div>
+				<!-- Sidebar -->
+				<div class="drawer-side">
+					<label for="drawer-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+					<aside class="bg-base-100 w-64 min-h-screen relative">
+						@Nav()
+						<!-- GitHub link pinned to bottom of sidebar -->
+						<div class="absolute bottom-0 left-0 right-0 p-4 border-t border-base-200 bg-base-100">
+							<a href={ templ.SafeURL(middleware.GetRepoURL()) } target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm w-full justify-start gap-3">
+								@components.IconGitHub("h-5 w-5")
+								GitHub
+							</a>
+						</div>
+					</aside>
+				</div>
+			</div>
+			<!-- Toast container -->
+			<div id="toast-container" class="toast toast-center toast-top z-[1000]"></div>
+			<!-- Modal container -->
+			<dialog id="modal" class="modal">
+				<div class="modal-box w-11/12 max-w-6xl max-h-[80vh] overflow-y-auto">
+					<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="handleModalClose()">✕</button>
+					<div id="modal-content">
+						<!-- Modal content loaded via HTMX -->
+					</div>
+				</div>
+				<div class="modal-backdrop" onclick="handleModalClose()"></div>
+			</dialog>
+			<script src="/static/js/app.js"></script>
+		</body>
+	</html>
+}
+
+templ Nav() {
+	<div class="flex flex-col h-full pb-16">
+		<div class="p-4 border-b border-base-200">
+			<a href="/web/" class="text-xl font-bold text-primary">RegAdmin <span class="text-sm font-normal">(v{ middleware.GetVersion(ctx) })</span></a>
+			<p class="text-sm text-base-content/60">Registration Management</p>
+		</div>
+		<ul class="menu p-4 gap-1">
+			<li>
+				<a href="/web/" class="flex items-center gap-3">
+					@components.IconKey("h-5 w-5")
+					Licenses
+				</a>
+			</li>
+			<li>
+				<a href="/web/customers" class="flex items-center gap-3">
+					@components.IconCustomers("h-5 w-5")
+					Customers
+				</a>
+			</li>
+			<li>
+				<a href="/web/products" class="flex items-center gap-3">
+					@components.IconProducts("h-5 w-5")
+					Products
+				</a>
+			</li>
+			<li>
+				<a href="/web/expirations" class="flex items-center gap-3">
+					@components.IconCalendarDays("h-5 w-5")
+					Expirations
+				</a>
+			</li>
+		</ul>
+		<div class="p-4 border-t border-base-200 space-y-2">
+			<!-- Theme toggle (Light <-> Dark) -->
+			<button type="button" onclick="toggleTheme()" class="btn btn-ghost btn-sm w-full justify-start gap-3">
+				<!-- Sun icon (shown in dark mode, click for light) -->
+				<span id="theme-icon-light" class={ hiddenIf(middleware.GetTheme(ctx) != "dark") }>
+					@components.IconSun("h-5 w-5")
+				</span>
+				<!-- Moon icon (shown in light mode, click for dark) -->
+				<span id="theme-icon-dark" class={ hiddenIf(middleware.GetTheme(ctx) == "dark") }>
+					@components.IconMoon("h-5 w-5")
+				</span>
+				<span id="theme-label">
+					if middleware.GetTheme(ctx) == "dark" {
+						Light
+					} else {
+						Dark
+					}
+				</span>
+			</button>
+			<!-- Logout -->
+			<form method="POST" action="/web/logout">
+				<input type="hidden" name="_csrf" value={ middleware.GetCSRF(ctx) }/>
+				<button type="submit" class="btn btn-ghost btn-sm w-full justify-start gap-3">
+					@components.IconLogout("h-5 w-5")
+					Logout
+				</button>
+			</form>
+		</div>
+	</div>
+}

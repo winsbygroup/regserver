@@ -1,0 +1,24 @@
+[Unit]
+Description=Registration Service (Go)
+After=network.target
+
+[Service]
+Type=simple
+User=regserver
+Group=regserver
+WorkingDirectory=/opt/regserver
+ExecStart=/opt/regserver/regserver
+Restart=on-failure
+RestartSec=5
+
+# Environment variables
+EnvironmentFile=/etc/regserver/env
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

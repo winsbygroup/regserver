@@ -1,0 +1,75 @@
+package pages
+
+import (
+	"strconv"
+
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+	"winsbygroup.com/regserver/templates/components"
+	"winsbygroup.com/regserver/templates/layouts"
+)
+
+templ Expirations(expirations []vm.ExpiredLicense, beforeDate string) {
+	@layouts.Base("Expired Licenses") {
+		<div class="space-y-6">
+			<!-- Header -->
+			<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+				<h1 class="text-2xl font-bold">Expired Licenses</h1>
+				<div class="flex flex-wrap items-center gap-2">
+					<form id="expirations-form" class="flex items-center gap-2">
+						<label class="text-sm font-medium whitespace-nowrap">As Of:</label>
+						<input
+							type="date"
+							name="before"
+							id="before-date"
+							class="input input-bordered input-sm"
+							value={ beforeDate }
+						/>
+						<button
+							type="submit"
+							class="btn btn-primary btn-sm"
+							hx-get="/web/expirations"
+							hx-include="#before-date"
+							hx-target="#expirations-table-container"
+							hx-swap="innerHTML"
+							hx-push-url="true"
+						>
+							Filter
+						</button>
+					</form>
+					<button
+						type="button"
+						class="btn btn-outline btn-sm"
+						onclick="window.location.href='/web/expirations/csv?before=' + document.getElementById('before-date').value"
+					>
+						@components.IconDownload("h-4 w-4 mr-1")
+						Download CSV
+					</button>
+				</div>
+			</div>
+			<!-- Results count -->
+			<div class="text-sm text-base-content/60">
+				if len(expirations) == 1 {
+					1 expired license found
+				} else {
+					{ formatCount(len(expirations)) } expired licenses found
+				}
+			</div>
+			<!-- Expirations Table -->
+			<div class="card bg-base-100 shadow-sm">
+				<div class="card-body p-0">
+					<div id="expirations-table-container">
+						@components.ExpirationsTable(expirations, beforeDate)
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ ExpirationsTablePartial(expirations []vm.ExpiredLicense, beforeDate string) {
+	@components.ExpirationsTable(expirations, beforeDate)
+}
+
+func formatCount(count int) string {
+	return strconv.Itoa(count)
+}

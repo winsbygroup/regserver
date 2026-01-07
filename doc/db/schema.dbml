@@ -1,0 +1,89 @@
+Table customer {
+  customer_id INTEGER [pk, increment]
+  customer_name VARCHAR(255) [not null, unique, note: 'NOCASE']
+  contact_name VARCHAR(255)
+  phone VARCHAR(255)
+  email VARCHAR(255)
+  notes TEXT
+}
+
+Table machine {
+  machine_id INTEGER [pk, increment]
+  customer_id INTEGER [not null, ref: > customer.customer_id]
+  machine_code VARCHAR(255) [not null]
+  user_name VARCHAR(255)
+}
+
+Table product {
+  product_id INTEGER [pk, increment]
+  product_name VARCHAR(255) [not null, unique, note: 'NOCASE']
+  product_guid VARCHAR(36) [not null, unique, note: 'NOCASE']
+  latest_version VARCHAR(10) [not null]
+  download_url VARCHAR(255) [not null]
+}
+
+Table registration {
+  machine_id INTEGER [not null, ref: > machine.machine_id]
+  product_id INTEGER [not null, ref: > product.product_id]
+  expiration_date VARCHAR(10) [not null]
+  registration_hash CHAR(28) [not null]
+  first_registration_date VARCHAR(10)
+  last_registration_date VARCHAR(10)
+  installed_version VARCHAR(20) [not null, default: ""]
+
+  indexes {
+    (machine_id, product_id) [pk]
+    machine_id
+    product_id
+  }
+}
+
+Table license {
+  customer_id INTEGER [not null, ref: > customer.customer_id]
+  product_id INTEGER [not null, ref: > product.product_id]
+  license_key VARCHAR(36) [not null, unique, note: 'NOCASE']
+  license_count INTEGER [not null]
+  is_subscription INTEGER [not null]
+  license_term INTEGER [not null]
+  start_date VARCHAR(10)
+  expiration_date VARCHAR(10)
+  maint_expiration_date VARCHAR(10) [not null, default: "9998-12-31"]
+  max_product_version VARCHAR(255)
+
+  indexes {
+    (customer_id, product_id) [pk]
+    customer_id
+    product_id
+    license_key [unique]
+  }
+}
+
+Table feature {
+  feature_id INTEGER [pk, increment]
+  product_id INTEGER [not null, ref: > product.product_id]
+  feature_name VARCHAR(255) [not null]
+  feature_type INTEGER [not null, default: 0, note: 'CHECK (0,1,2)']
+  allowed_values VARCHAR(255)
+  default_value VARCHAR(255)
+
+  indexes {
+    product_id
+    (product_id, feature_name) [unique, note: 'feature_name NOCASE']
+  }
+}
+
+Table license_feature {
+  customer_id INTEGER [not null]
+  product_id INTEGER [not null]
+  feature_id INTEGER [not null, ref: > feature.feature_id]
+  feature_value VARCHAR(255) [not null]
+
+  indexes {
+    (customer_id, product_id, feature_id) [pk]
+    feature_id
+    (customer_id, product_id)
+  }
+}
+
+Ref: license_feature.customer_id > license.customer_id
+Ref: license_feature.product_id > license.product_id

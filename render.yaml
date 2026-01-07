@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: regserver
+    plan: free
+    runtime: go
+    autoDeploy: false
+    buildCommand: go install github.com/a-h/templ/cmd/templ@latest && templ generate && go build -o regserver ./cmd/regserver
+    startCommand: ./regserver -demo
+    envVars:
+      - key: ADMIN_API_KEY
+        value: demo
+      - key: REGISTRATION_SECRET
+        value: demo-secret-do-not-use-in-production

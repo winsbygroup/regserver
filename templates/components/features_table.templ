@@ -1,0 +1,338 @@
+package components
+
+import (
+	"fmt"
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+)
+
+templ FeaturesTable(customerID int64, productID int64, features []vm.ProductFeature) {
+	<div class="card bg-base-100 shadow-sm">
+		<div class="card-body">
+			<h2 class="card-title text-lg">Feature Values</h2>
+			if len(features) == 0 {
+				@EmptyState("No features defined for this product.")
+			} else {
+				<div class="overflow-x-auto">
+					<table class="table table-sm">
+						<thead>
+							<tr>
+								<th>Feature</th>
+								<th>Value</th>
+								<th class="w-20">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, feature := range features {
+								<tr>
+									<td class="font-medium">{ feature.FeatureName }</td>
+									<td>
+										if feature.FeatureValue != "" {
+											{ feature.FeatureValue }
+										} else {
+											<span class="text-base-content/40 italic">{ feature.DefaultValue } (default)</span>
+										}
+									</td>
+									<td>
+										<button
+											class="btn btn-ghost btn-xs"
+											hx-get={ fmt.Sprintf("/web/features/%d/%d/%d/edit", customerID, productID, feature.FeatureID) }
+											hx-target="#modal-content"
+											hx-swap="innerHTML"
+											title="Edit"
+										>
+											@IconEdit("h-4 w-4")
+										</button>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ FeatureValueForm(customerID int64, productID int64, feature vm.ProductFeature) {
+	<h3 class="font-bold text-lg mb-4">Edit Feature Value</h3>
+	<form
+		hx-put={ fmt.Sprintf("/web/features/%d/%d/%d", customerID, productID, feature.FeatureID) }
+		hx-target="#features-container"
+		hx-swap="innerHTML"
+	>
+		<div class="space-y-4">
+			<div>
+				<label class="label">Feature</label>
+				<input
+					type="text"
+					class="input input-bordered input-lg w-full"
+					value={ feature.FeatureName }
+					disabled
+				/>
+			</div>
+			<div>
+				<label class="label">Type</label>
+				<input
+					type="text"
+					class="input input-bordered input-lg w-full"
+					value={ feature.FeatureType.String() }
+					disabled
+				/>
+			</div>
+			<div>
+				<label class="label">Value</label>
+				switch feature.FeatureType {
+					case vm.FeatureTypeValues:
+						<select name="feature_value" class="select select-bordered select-lg w-full">
+							<option value="">-- Use Default ({ feature.DefaultValue }) --</option>
+							for _, val := range feature.AllowedValuesList() {
+								<option
+									value={ val }
+									if feature.FeatureValue == val {
+										selected
+									}
+								>
+									{ val }
+								</option>
+							}
+						</select>
+					case vm.FeatureTypeInteger:
+						<input
+							type="number"
+							name="feature_value"
+							class="input input-bordered input-lg w-full"
+							value={ feature.FeatureValue }
+							placeholder={ fmt.Sprintf("Default: %s", feature.DefaultValue) }
+						/>
+					default:
+						<input
+							type="text"
+							name="feature_value"
+							class="input input-bordered input-lg w-full"
+							value={ feature.FeatureValue }
+							placeholder={ fmt.Sprintf("Default: %s", feature.DefaultValue) }
+						/>
+				}
+				if feature.DefaultValue != "" {
+					<span class="text-sm opacity-60">Default: { feature.DefaultValue }</span>
+				}
+			</div>
+		</div>
+		<div class="modal-action">
+			<button type="button" class="btn" onclick="closeModal()">Cancel</button>
+			<button type="submit" class="btn btn-primary">Save</button>
+		</div>
+	</form>
+}
+
+// Product feature manager (for product catalog page)
+templ ProductFeaturesManager(product *vm.Product, features []vm.Feature) {
+	<h3 class="font-bold text-lg mb-4">
+		Manage Features - { product.ProductName }
+	</h3>
+	<div class="space-y-4">
+		<div class="flex justify-end">
+			<button
+				class="btn btn-primary btn-sm"
+				hx-get={ fmt.Sprintf("/web/products/%d/features/new", product.ProductID) }
+				hx-target="#modal-content"
+				hx-swap="innerHTML"
+			>
+				@IconPlus("h-4 w-4 mr-1")
+				Add Feature
+			</button>
+		</div>
+		if len(features) == 0 {
+			@EmptyState("No features defined. Click 'Add Feature' to create one.")
+		} else {
+			<div class="overflow-x-auto">
+				<table class="table table-sm">
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Type</th>
+							<th>Default</th>
+							<th>Allowed Values</th>
+							<th class="w-24">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, feature := range features {
+							<tr>
+								<td class="font-medium">{ feature.FeatureName }</td>
+								<td>{ feature.FeatureType.String() }</td>
+								<td>{ feature.DefaultValue }</td>
+								<td class="max-w-xs truncate">{ feature.AllowedValues }</td>
+								<td>
+									<div class="flex gap-1">
+										<button
+											class="btn btn-ghost btn-xs"
+											hx-get={ fmt.Sprintf("/web/products/%d/features/%d/edit", product.ProductID, feature.FeatureID) }
+											hx-target="#modal-content"
+											hx-swap="innerHTML"
+											title="Edit"
+										>
+											@IconEdit("h-4 w-4")
+										</button>
+										<button
+											class="btn btn-ghost btn-xs text-error"
+											hx-delete={ fmt.Sprintf("/web/products/%d/features/%d", product.ProductID, feature.FeatureID) }
+											hx-target="#modal-content"
+											hx-swap="innerHTML"
+											hx-confirm={ fmt.Sprintf("Are you sure you want to delete feature '%s'?", feature.FeatureName) }
+											title="Delete"
+										>
+											@IconTrash("h-4 w-4")
+										</button>
+									</div>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+	<div class="modal-action">
+		<button type="button" class="btn" onclick="closeModal()">Close</button>
+	</div>
+}
+
+// FeatureFormData holds form data with optional field errors
+type FeatureFormData struct {
+	Feature   *vm.Feature
+	ProductID int64
+	Errors    map[string]string // field name -> error message
+}
+
+templ FeatureForm(feature *vm.Feature, productID int64) {
+	@FeatureFormWithErrors(FeatureFormData{Feature: feature, ProductID: productID})
+}
+
+templ FeatureFormWithErrors(data FeatureFormData) {
+	<div data-back-url={ fmt.Sprintf("/web/products/%d/features", data.ProductID) } data-init-back-url></div>
+	<h3 class="font-bold text-lg mb-4">
+		if data.Feature == nil {
+			New Feature
+		} else {
+			Edit Feature
+		}
+	</h3>
+	<form
+		if data.Feature == nil {
+			hx-post={ fmt.Sprintf("/web/products/%d/features", data.ProductID) }
+		} else {
+			hx-put={ fmt.Sprintf("/web/products/%d/features/%d", data.ProductID, data.Feature.FeatureID) }
+		}
+		hx-target="#modal-content"
+		hx-swap="innerHTML"
+	>
+		<input type="hidden" name="product_id" value={ fmt.Sprintf("%d", data.ProductID) }/>
+		<div class="space-y-4">
+			<div>
+				<label class="label">Feature Name *</label>
+				<input
+					type="text"
+					name="feature_name"
+					class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["feature_name"] != "") }
+					value={ getFeatureName(data.Feature) }
+					required
+				/>
+				if data.Errors["feature_name"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["feature_name"] }</span>
+					</label>
+				}
+			</div>
+			<div>
+				<label class="label">Type *</label>
+				<select
+					name="feature_type"
+					id="feature-type-select"
+					class={ "select select-bordered select-lg w-full", templ.KV("select-error", data.Errors["feature_type"] != "") }
+					required
+					onchange="toggleAllowedValues()"
+				>
+					<option value="integer" if data.Feature != nil && data.Feature.FeatureType == vm.FeatureTypeInteger { selected }>Integer</option>
+					<option value="string" if data.Feature != nil && data.Feature.FeatureType == vm.FeatureTypeString { selected }>String</option>
+					<option value="values" if data.Feature != nil && data.Feature.FeatureType == vm.FeatureTypeValues { selected }>Values (Enum)</option>
+				</select>
+				if data.Errors["feature_type"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["feature_type"] }</span>
+					</label>
+				}
+			</div>
+			<div>
+				<label class="label">Default Value</label>
+				<input
+					type="text"
+					name="default_value"
+					class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["default_value"] != "") }
+					value={ getFeatureDefaultValue(data.Feature) }
+				/>
+				if data.Errors["default_value"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["default_value"] }</span>
+					</label>
+				}
+			</div>
+			<div>
+				<label class="label">Allowed Values (pipe-separated, for Values type)</label>
+				<input
+					type="text"
+					name="allowed_values"
+					id="allowed-values-input"
+					class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["allowed_values"] != "") }
+					value={ getFeatureAllowedValues(data.Feature) }
+					placeholder="e.g., Basic|Standard|Premium"
+					if data.Feature == nil || data.Feature.FeatureType != vm.FeatureTypeValues {
+						disabled
+					}
+				/>
+				if data.Errors["allowed_values"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["allowed_values"] }</span>
+					</label>
+				}
+			</div>
+		</div>
+		<div class="modal-action">
+			<button
+				type="button"
+				class="btn"
+				hx-get={ fmt.Sprintf("/web/products/%d/features", data.ProductID) }
+				hx-target="#modal-content"
+				hx-swap="innerHTML"
+			>Cancel</button>
+			<button type="submit" class="btn btn-primary">
+				if data.Feature == nil {
+					Create
+				} else {
+					Save
+				}
+			</button>
+		</div>
+	</form>
+}
+
+func getFeatureName(f *vm.Feature) string {
+	if f == nil {
+		return ""
+	}
+	return f.FeatureName
+}
+
+func getFeatureDefaultValue(f *vm.Feature) string {
+	if f == nil {
+		return ""
+	}
+	return f.DefaultValue
+}
+
+func getFeatureAllowedValues(f *vm.Feature) string {
+	if f == nil {
+		return ""
+	}
+	return f.AllowedValues
+}

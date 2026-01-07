@@ -1,0 +1,15 @@
+meta {
+  name: List Customers
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/customers
+  body: none
+  auth: none
+}
+
+headers {
+  X-API-Key: {{adminKey}}
+}

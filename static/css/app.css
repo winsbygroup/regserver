@@ -1,0 +1,92 @@
+/* Custom styles for RegAdmin */
+
+/* License key display */
+.license-key {
+    font-family: monospace;
+    background: var(--color-base-200);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    word-break: break-all;
+}
+
+/* Expired date highlighting */
+.date-expired {
+    color: var(--color-error);
+    font-weight: 500;
+}
+
+/* Selectable table rows */
+.table-row-selectable {
+    cursor: pointer;
+}
+
+.table-row-selectable:hover {
+    background: var(--color-base-200);
+}
+
+.table-row-selectable.selected {
+    background: color-mix(in oklch, var(--color-primary) 10%, transparent);
+}
+
+/* hide disabled select options */
+option:disabled {
+    display: none;
+}
+
+/* Tom Select - DaisyUI 5 theme integration */
+
+/* Hide native select before Tom Select initializes to prevent FOUC */
+#customer-select:not(.tomselected) {
+    visibility: hidden;
+    position: absolute;
+}
+
+.ts-wrapper {
+    width: 100%;
+}
+
+.ts-control {
+    background: var(--color-base-100) !important;
+    border: 1px solid color-mix(in oklch, var(--color-base-content) 20%, transparent) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 1rem !important;
+    min-height: 3rem !important;
+    color: var(--color-base-content) !important;
+}
+
+.ts-control:focus,
+.ts-wrapper.focus .ts-control {
+    border-color: var(--color-primary) !important;
+    outline: 2px solid color-mix(in oklch, var(--color-primary) 20%, transparent) !important;
+}
+
+.ts-control input {
+    color: var(--color-base-content) !important;
+}
+
+.ts-control input::placeholder {
+    color: color-mix(in oklch, var(--color-base-content) 50%, transparent) !important;
+}
+
+.ts-control .item {
+    font-weight: 500 !important;
+    line-height: 2rem !important;
+}
+
+.ts-dropdown {
+    background: var(--color-base-100) !important;
+    border: 1px solid color-mix(in oklch, var(--color-base-content) 20%, transparent) !important;
+    border-radius: 0.5rem !important;
+    color: var(--color-base-content) !important;
+}
+
+.ts-dropdown .option {
+    padding: 0.5rem 1rem !important;
+    color: var(--color-base-content) !important;
+}
+
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active {
+    background: color-mix(in oklch, var(--color-primary) 10%, transparent) !important;
+    color: var(--color-base-content) !important;
+}

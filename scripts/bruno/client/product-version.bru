@@ -1,0 +1,11 @@
+meta {
+  name: Get Product Version
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/productver/{{productGuid}}
+  body: none
+  auth: none
+}

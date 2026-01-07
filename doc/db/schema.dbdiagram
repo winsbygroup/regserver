@@ -1,0 +1,53 @@
+{
+  "version": "1.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "detailLevel": "All",
+  "tablePositions": [
+    {
+      "name": "customer",
+      "schemaName": "public",
+      "x": 36.225530357425285,
+      "y": -290.18161551104026
+    },
+    {
+      "name": "machine",
+      "schemaName": "public",
+      "x": 42.88044972926325,
+      "y": -8.40044661677905
+    },
+    {
+      "name": "product",
+      "schemaName": "public",
+      "x": 412.63854465838443,
+      "y": 260.89988834580515
+    },
+    {
+      "name": "registration",
+      "schemaName": "public",
+      "x": 45.08929988867527,
+      "y": 228.89988834580515
+    },
+    {
+      "name": "license",
+      "schemaName": "public",
+      "x": 412.63854465838443,
+      "y": -188.17938242714484
+    },
+    {
+      "name": "feature",
+      "schemaName": "public",
+      "x": 847.96497137832,
+      "y": 228.89988834580515
+    },
+    {
+      "name": "license_feature",
+      "schemaName": "public",
+      "x": 848.666387393945,
+      "y": -51.93301118847489
+    }
+  ],
+  "tableGroupCollapseStates": [],
+  "stickyNoteLayouts": [],
+  "referencePaths": []
+}

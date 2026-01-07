@@ -1,0 +1,48 @@
+package pages
+
+import "winsbygroup.com/regserver/templates/components"
+
+templ Login(errorMsg string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme="standard">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Login - RegAdmin</title>
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css"/>
+			<script src="https://cdn.tailwindcss.com"></script>
+		</head>
+		<body class="min-h-screen bg-base-200 flex items-center justify-center">
+			<div class="card w-96 bg-base-100 shadow-xl">
+				<div class="card-body">
+					<h2 class="card-title justify-center text-2xl mb-2">RegAdmin</h2>
+					<p class="text-center text-base-content/60 mb-4">Enter your admin API key to continue</p>
+					if errorMsg != "" {
+						<div class="alert alert-error mb-4">
+							@components.IconError("stroke-current shrink-0 h-6 w-6")
+							<span>{ errorMsg }</span>
+						</div>
+					}
+					<form method="POST" action="/web/login">
+						<div class="form-control">
+							<label class="label">
+								<span class="label-text">API Key</span>
+							</label>
+							<input
+								type="password"
+								name="api_key"
+								placeholder="Enter your API key"
+								class="input input-bordered w-full"
+								required
+								autofocus
+							/>
+						</div>
+						<div class="form-control mt-6">
+							<button type="submit" class="btn btn-primary w-full">Login</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</body>
+	</html>
+}

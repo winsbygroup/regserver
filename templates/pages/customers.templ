@@ -1,0 +1,35 @@
+package pages
+
+import (
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+	"winsbygroup.com/regserver/templates/components"
+	"winsbygroup.com/regserver/templates/layouts"
+)
+
+templ Customers(customers []vm.Customer) {
+	@layouts.Base("Customers") {
+		<div class="space-y-6">
+			<!-- Header -->
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-bold">Customers</h1>
+				<button
+					class="btn btn-primary"
+					hx-get="/web/customers/new"
+					hx-target="#modal-content"
+					hx-swap="innerHTML"
+				>
+					@components.IconPlus("h-5 w-5 mr-1")
+					Add Customer
+				</button>
+			</div>
+			<!-- Customers Table -->
+			<div class="card bg-base-100 shadow-sm">
+				<div class="card-body p-0">
+					<div id="customers-table-container">
+						@components.CustomersTable(customers)
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}

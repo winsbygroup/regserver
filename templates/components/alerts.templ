@@ -1,0 +1,68 @@
+package components
+
+// Toast displays a toast notification
+templ Toast(message string, alertType string) {
+	<div class={ "alert", alertClass(alertType), "shadow-lg" }>
+		<span>{ message }</span>
+	</div>
+}
+
+func alertClass(alertType string) string {
+	switch alertType {
+	case "success":
+		return "alert-success"
+	case "error":
+		return "alert-error"
+	case "warning":
+		return "alert-warning"
+	default:
+		return "alert-info"
+	}
+}
+
+// ErrorMessage displays an error message inline
+templ ErrorMessage(message string) {
+	<div class="alert alert-error">
+		@IconError("stroke-current shrink-0 h-6 w-6")
+		<span>{ message }</span>
+	</div>
+}
+
+// SuccessMessage displays a success message inline
+templ SuccessMessage(message string) {
+	<div class="alert alert-success">
+		@IconSuccess("stroke-current shrink-0 h-6 w-6")
+		<span>{ message }</span>
+	</div>
+}
+
+// LoadingSpinner displays a loading indicator
+templ LoadingSpinner() {
+	<span class="loading loading-spinner loading-md"></span>
+}
+
+// EmptyState displays a message when there's no data
+templ EmptyState(message string) {
+	<div class="text-center py-12">
+		@IconInbox("mx-auto h-12 w-12 text-base-content/30")
+		<p class="mt-4 text-base-content/60">{ message }</p>
+	</div>
+}
+
+// ConfirmDelete displays a delete confirmation dialog content
+templ ConfirmDelete(message string, deleteURL string, targetID string) {
+	<h3 class="font-bold text-lg">Confirm Delete</h3>
+	<p class="py-4">{ message }</p>
+	<div class="modal-action">
+		<button class="btn" onclick="closeModal()">Cancel</button>
+		<button
+			class="btn btn-error"
+			hx-delete={ deleteURL }
+			hx-target={ targetID }
+			hx-swap="outerHTML"
+			onclick="closeModal()"
+		>
+			Delete
+		</button>
+	</div>
+}

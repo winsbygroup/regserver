@@ -1,0 +1,22 @@
+meta {
+  name: Update License Info
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/license/{{licenseKey}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "machineCode": "TEST-MACHINE-001",
+    "installedVersion": "1.0.0"
+  }
+}

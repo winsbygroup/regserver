@@ -1,0 +1,246 @@
+version: "3"
+
+vars:
+  BINARY: regserver{{exeExt}}
+  BIN_DIR: ./dist
+  CMD_DIR: ./cmd/regserver
+  DB_FILE: ./testdata/registrations.db
+  BACKUP_DIR: ./backups
+  CADDYFILE_DEV: ./deploy/Caddyfile.dev
+  CADDYFILE_PROD: ./deploy/Caddyfile
+
+tasks:
+
+  # -----------------------------
+  # Build & Run
+  # -----------------------------
+
+  generate:
+    desc: Generate templ templates
+    sources:
+      - templates/**/*.templ
+    generates:
+      - templates/**/*_templ.go
+    cmds:
+      - templ generate
+
+  build:
+    desc: Build the registration service
+    deps: [generate]
+    sources:
+      - cmd/regserver/**/*.go
+      - internal/**/*.go
+      - templates/**/*_templ.go
+      - static/**/*
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.BIN_DIR}}/{{.BINARY}}"
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - go build -o {{.BIN_DIR}}/{{.BINARY}} {{.CMD_DIR}}
+
+  run:
+    desc: Run the service directly (no build)
+    cmds:
+      - go run {{.CMD_DIR}}
+    silent: true
+
+  start:
+    desc: Build and run the service
+    cmds:
+      - task: build
+      - "{{.BIN_DIR}}/{{.BINARY}}"
+
+  demo:
+    desc: Run in demo mode with fresh sample data (Windows)
+    platforms: [windows]
+    deps: [build]
+    cmds:
+      - cmd /C scripts\\demo.cmd
+
+  debug:
+    desc: "Start Delve in headless mode for GoLand remote debugging"
+    dir: .
+    cmds:
+      - |
+        echo "Starting Delve (headless) on port 40000..."
+        echo "Project: $(pwd)"
+        dlv debug --headless --listen=:40000 --api-version=2 --accept-multiclient
+    silent: false
+
+
+  # -----------------------------
+  # Development: Go + Caddy
+  # -----------------------------
+
+  dev:
+    desc: Run Go service and Caddy (dev mode) together
+    cmds:
+      - task: build
+      - |
+        "{{.BIN_DIR}}/{{.BINARY}}" &
+        SERVER_PID=$!
+        caddy run --config {{.CADDYFILE_DEV}} &
+        CADDY_PID=$!
+        trap "kill $SERVER_PID $CADDY_PID" EXIT
+        wait
+
+  # -----------------------------
+  # Caddy Tasks
+  # -----------------------------
+
+  caddy:dev:
+    desc: Run Caddy with local HTTPS using internal CA
+    cmds:
+      - caddy run --config {{.CADDYFILE_DEV}}
+
+  caddy:prod:
+    desc: Run Caddy with production config (winsbygroup.com)
+    cmds:
+      - caddy run --config {{.CADDYFILE_PROD}}
+
+  caddy:reload:
+    desc: Reload Caddy configuration
+    cmds:
+      - caddy reload --config {{.CADDYFILE_DEV}}
+
+  caddy:install:
+    desc: Install Caddy locally (optional)
+    cmds:
+      - go install github.com/caddyserver/caddy/v2/cmd/caddy@latest
+
+  # -----------------------------
+  # Development Utilities
+  # -----------------------------
+
+  tidy:
+    desc: Clean and verify Go module dependencies
+    cmds:
+      - go mod tidy
+
+  fmt:
+    desc: Format all Go files
+    cmds:
+      - go fmt ./...
+
+  vet:
+    desc: Run go vet for static analysis
+    cmds:
+      - go vet ./...
+
+  lint:
+    desc: Run all static checks (fmt + vet)
+    cmds:
+      - task: fmt
+      - task: vet
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./... -v
+
+  test:errors:
+    desc: "Run all tests and show only errors (Windows)"
+    platforms: [windows]
+    cmds:
+      - pwsh -Command "
+        go test ./... 2>&1 |
+        Select-String -NotMatch '^\?|^ok|^PASS|^\s*$'
+        "
+
+  test:errors:unix:
+    desc: "Run all tests and show only errors (Linux/macOS)"
+    platforms: [linux, darwin]
+    cmds:
+      - go test ./... 2>&1 | grep -vE '^\?|^ok|^PASS|^\s*$'
+
+  routes:
+    desc: "Show all Echo routes"
+    cmds:
+      - go run ./cmd/regserver -routes
+
+  # -----------------------------
+  # Database Utilities
+  # -----------------------------
+
+  db:sample:
+    desc: Populate database with sample data
+    cmds:
+      - sqlite3 {{.DB_FILE}} ".read testdata/sample-data.sql"
+    silent: true
+
+  db:shell:
+    desc: Open SQLite shell
+    cmds:
+      - sqlite3 {{.DB_FILE}}
+
+  db:check:
+    desc: Run SQLite integrity check
+    cmds:
+      - sqlite3 {{.DB_FILE}} "PRAGMA integrity_check;"
+
+  db:backup:windows:
+    desc: Portable SQLite backup (Windows)
+    platforms: [windows]
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File scripts/backup-db.ps1 -DbFile "{{.DB_FILE}}" -BackupDir "{{.BACKUP_DIR}}"
+
+  db:backup:unix:
+    desc: Portable SQLite backup (Linux/macOS)
+    platforms: [linux, darwin]
+    cmds:
+      - mkdir -p {{.BACKUP_DIR}}
+      - |
+        bdate=$(sqlite3 {{.DB_FILE}} "SELECT strftime('%Y-%m-%d_%H.%M.%S');")
+        sqlite3 {{.DB_FILE}} "vacuum into 'temp.db';"
+        sqlite3 temp.db .dump > {{.BACKUP_DIR}}/${bdate}_regdump.sql
+        echo "PRAGMA journal_mode=WAL" >> {{.BACKUP_DIR}}/${bdate}_regdump.sql
+        rm -f temp.db
+
+  db:backup:
+    desc: Cross-platform SQLite backup
+    cmds:
+      - task: db:backup:windows
+      - task: db:backup:unix
+
+  # -----------------------------
+  # Setup
+  # -----------------------------
+
+  gen:apikey:windows:
+    desc: Generate a secure API key (Windows)
+    platforms: [windows]
+    cmds:
+      - powershell -NoProfile -Command "[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]])"
+
+  gen:apikey:unix:
+    desc: Generate a secure API key (Linux/macOS)
+    platforms: [linux, darwin]
+    cmds:
+      - openssl rand -base64 32
+
+  gen:apikey:
+    desc: Generate a secure API key for ADMIN_API_KEY
+    cmds:
+      - task: gen:apikey:windows
+      - task: gen:apikey:unix
+
+  # -----------------------------
+  # Deployment
+  # -----------------------------
+
+  deploy:
+    desc: Build and deploy to production server
+    platforms: [linux, darwin]
+    cmds:
+      - bash ./deploy/deploy.sh
+
+  # -----------------------------
+  # Misc
+  # -----------------------------
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -f {{.BIN_DIR}}/{{.BINARY}}

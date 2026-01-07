@@ -1,0 +1,19 @@
+# ============================================
+# Production configuration
+# ============================================
+reg.winsbygroup.com {
+    encode gzip
+
+    # Reverse proxy to Go service
+    reverse_proxy localhost:8080
+
+    # Access logs (JSON for auditability)
+    log {
+        output file /var/log/caddy/regserver.log {
+            roll_size 10mb
+            roll_keep 10
+            roll_keep_for 720h
+        }
+        format json
+    }
+}

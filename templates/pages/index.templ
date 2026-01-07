@@ -1,0 +1,52 @@
+package pages
+
+import (
+	"fmt"
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+	"winsbygroup.com/regserver/templates/layouts"
+)
+
+templ Index(customers []vm.Customer, selectedCustomerID string) {
+	@layouts.Base("Licenses") {
+		<div class="space-y-6">
+			<!-- Header -->
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-bold">Licenses</h1>
+			</div>
+			<!-- Customer Selection -->
+			<div class="card bg-base-100 shadow-sm">
+				<div class="card-body">
+					<h2 class="card-title text-lg">Select Customer</h2>
+					<div class="form-control w-full max-w-md">
+						<select
+							id="customer-select"
+							data-selected={ selectedCustomerID }
+							placeholder="Type to search customers..."
+						>
+							<option value="">-- Select a customer --</option>
+							for _, c := range customers {
+								<option
+									value={ fmt.Sprintf("%d", c.CustomerID) }
+									if fmt.Sprintf("%d", c.CustomerID) == selectedCustomerID {
+										selected
+									}
+								>{ c.CustomerName }</option>
+							}
+						</select>
+					</div>
+				</div>
+			</div>
+			<!-- Licenses Section -->
+			<div id="registrations-container">
+				<!-- Loaded via HTMX when customer is selected -->
+				<div class="text-center py-12 text-base-content/60">
+					Select a customer to view their licenses
+				</div>
+			</div>
+			<!-- Features Section -->
+			<div id="features-container" class="hidden">
+				<!-- Loaded via HTMX when product is selected -->
+			</div>
+		</div>
+	}
+}

@@ -1,0 +1,218 @@
+package components
+
+import (
+	"fmt"
+	vm "winsbygroup.com/regserver/internal/viewmodels"
+)
+
+templ CustomersTable(customers []vm.Customer) {
+	if len(customers) == 0 {
+		@EmptyState("No customers found. Click 'Add Customer' to create one.")
+	} else {
+		<div class="overflow-x-auto">
+			<table class="table table-zebra">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Contact</th>
+						<th>Phone</th>
+						<th>Email</th>
+						<th class="w-32">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, customer := range customers {
+						<tr>
+							<td class="font-medium">{ customer.CustomerName }</td>
+							<td>{ customer.ContactName }</td>
+							<td>{ customer.Phone }</td>
+							<td>
+								if customer.Email != "" {
+									<a href={ templ.SafeURL("mailto:" + customer.Email) } class="link link-primary">{ customer.Email }</a>
+								}
+							</td>
+							<td>
+								<div class="flex gap-1">
+									<a
+										class="btn btn-ghost btn-xs"
+										href={ templ.SafeURL(fmt.Sprintf("/web/?customer=%d", customer.CustomerID)) }
+										title="View Licenses"
+									>
+										@IconKey("h-4 w-4")
+									</a>
+									<button
+										class="btn btn-ghost btn-xs"
+										hx-get={ fmt.Sprintf("/web/customers/%d/edit", customer.CustomerID) }
+										hx-target="#modal-content"
+										hx-swap="innerHTML"
+										title="Edit"
+									>
+										@IconEdit("h-4 w-4")
+									</button>
+									<button
+										class="btn btn-ghost btn-xs text-error"
+										hx-delete={ fmt.Sprintf("/web/customers/%d", customer.CustomerID) }
+										hx-target="#customers-table-container"
+										hx-swap="innerHTML"
+										hx-confirm={ fmt.Sprintf("Are you sure you want to delete '%s'? This will also delete all their licenses.", customer.CustomerName) }
+										title="Delete"
+									>
+										@IconTrash("h-4 w-4")
+									</button>
+								</div>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+// CustomerFormData holds form data with optional field errors
+type CustomerFormData struct {
+	Customer *vm.Customer
+	Errors   map[string]string // field name -> error message
+}
+
+templ CustomerForm(customer *vm.Customer) {
+	@CustomerFormWithErrors(CustomerFormData{Customer: customer})
+}
+
+templ CustomerFormWithErrors(data CustomerFormData) {
+	<h3 class="font-bold text-lg mb-4">
+		if data.Customer == nil {
+			New Customer
+		} else {
+			Edit Customer
+		}
+	</h3>
+	<form
+		if data.Customer == nil {
+			hx-post="/web/customers"
+		} else {
+			hx-put={ fmt.Sprintf("/web/customers/%d", data.Customer.CustomerID) }
+		}
+		hx-target="#customers-table-container"
+		hx-swap="innerHTML"
+	>
+		<div class="space-y-4">
+			<div>
+				<label class="label">Customer Name *</label>
+				<input
+					type="text"
+					name="customer_name"
+					class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["customer_name"] != "") }
+					value={ getCustomerName(data.Customer) }
+					required autofocus
+				/>
+				if data.Errors["customer_name"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["customer_name"] }</span>
+					</label>
+				}
+			</div>
+			<div>
+				<label class="label">Contact Name</label>
+				<input
+					type="text"
+					name="contact_name"
+					class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["contact_name"] != "") }
+					value={ getContactName(data.Customer) }
+				/>
+				if data.Errors["contact_name"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["contact_name"] }</span>
+					</label>
+				}
+			</div>
+			<div class="grid grid-cols-2 gap-4">
+				<div>
+					<label class="label">Phone</label>
+					<input
+						type="tel"
+						name="phone"
+						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["phone"] != "") }
+						value={ getPhone(data.Customer) }
+					/>
+					if data.Errors["phone"] != "" {
+						<label class="label">
+							<span class="label-text-alt text-error">{ data.Errors["phone"] }</span>
+						</label>
+					}
+				</div>
+				<div>
+					<label class="label">Email</label>
+					<input
+						type="email"
+						name="email"
+						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["email"] != "") }
+						value={ getEmail(data.Customer) }
+					/>
+					if data.Errors["email"] != "" {
+						<label class="label">
+							<span class="label-text-alt text-error">{ data.Errors["email"] }</span>
+						</label>
+					}
+				</div>
+			</div>
+			<div>
+				<label class="label">Notes</label>
+				<textarea
+					name="notes"
+					class={ "textarea textarea-bordered textarea-lg w-full h-24", templ.KV("textarea-error", data.Errors["notes"] != "") }
+				>{ getNotes(data.Customer) }</textarea>
+				if data.Errors["notes"] != "" {
+					<label class="label">
+						<span class="label-text-alt text-error">{ data.Errors["notes"] }</span>
+					</label>
+				}
+			</div>
+		</div>
+		<div class="modal-action">
+			<button type="button" class="btn" onclick="closeModal()">Cancel</button>
+			<button type="submit" class="btn btn-primary">
+				if data.Customer == nil {
+					Create
+				} else {
+					Save
+				}
+			</button>
+		</div>
+	</form>
+}
+
+func getCustomerName(c *vm.Customer) string {
+	if c == nil {
+		return ""
+	}
+	return c.CustomerName
+}
+
+func getContactName(c *vm.Customer) string {
+	if c == nil {
+		return ""
+	}
+	return c.ContactName
+}
+
+func getPhone(c *vm.Customer) string {
+	if c == nil {
+		return ""
+	}
+	return c.Phone
+}
+
+func getEmail(c *vm.Customer) string {
+	if c == nil {
+		return ""
+	}
+	return c.Email
+}
+
+func getNotes(c *vm.Customer) string {
+	if c == nil {
+		return ""
+	}
+	return c.Notes
+}

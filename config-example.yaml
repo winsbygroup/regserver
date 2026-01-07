@@ -1,0 +1,5 @@
+addr: ":8080"
+db_path: "./testdata/registrations.db"
+read_timeout: 5s
+write_timeout: 10s
+idle_timeout: 120s
