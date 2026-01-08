@@ -13,10 +13,10 @@ import (
 
 	"winsbygroup.com/regserver/internal/activation"
 	"winsbygroup.com/regserver/internal/customer"
-	"winsbygroup.com/regserver/internal/license"
 	"winsbygroup.com/regserver/internal/feature"
 	"winsbygroup.com/regserver/internal/featurevalue"
 	"winsbygroup.com/regserver/internal/http/client"
+	"winsbygroup.com/regserver/internal/license"
 	"winsbygroup.com/regserver/internal/machine"
 	"winsbygroup.com/regserver/internal/middleware"
 	"winsbygroup.com/regserver/internal/product"
@@ -360,10 +360,10 @@ func TestRegisterRoutes(t *testing.T) {
 	// Verify routes are registered
 	routes := e.Routes()
 	expectedRoutes := map[string]string{
-		"POST:/api/v1/activate":              "activate",
-		"GET:/api/v1/productver/:guid":       "productver",
-		"GET:/api/v1/license/:license_key":   "license",
-		"PUT:/api/v1/license/:license_key":   "license update",
+		"POST:/api/v1/activate":            "activate",
+		"GET:/api/v1/productver/:guid":     "productver",
+		"GET:/api/v1/license/:license_key": "license",
+		"PUT:/api/v1/license/:license_key": "license update",
 	}
 
 	found := make(map[string]bool)

@@ -188,8 +188,8 @@ func Build(cfg *config.Config) (*Server, error) {
 
 	// Web UI
 	webGroup := e.Group("/web")
-	webGroup.Use(mwsvc.Theme())            // Read theme cookie into context
-	webGroup.Use(mwsvc.Version())          // Add app version to context
+	webGroup.Use(mwsvc.Theme())                // Read theme cookie into context
+	webGroup.Use(mwsvc.Version())              // Add app version to context
 	webGroup.Use(mwsvc.DemoMode(cfg.DemoMode)) // Add demo mode flag to context
 	webGroup.Use(mwsvc.WebAuth())
 	webGroup.Use(mwecho.CSRFWithConfig(mwecho.CSRFConfig{

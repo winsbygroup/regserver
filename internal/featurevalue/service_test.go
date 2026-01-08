@@ -7,9 +7,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"winsbygroup.com/regserver/internal/customer"
-	"winsbygroup.com/regserver/internal/license"
 	"winsbygroup.com/regserver/internal/feature"
 	"winsbygroup.com/regserver/internal/featurevalue"
+	"winsbygroup.com/regserver/internal/license"
 	"winsbygroup.com/regserver/internal/product"
 	"winsbygroup.com/regserver/internal/testutil"
 )
@@ -34,8 +34,8 @@ func TestFeatureValueLifecycle(t *testing.T) {
 
 	// Create product
 	p, err := prodSvc.Create(ctx, &product.Product{
-		ProductName:  "Widget",
-		ProductGUID:  "test-widget-guid",
+		ProductName: "Widget",
+		ProductGUID: "test-widget-guid",
 	})
 	if err != nil {
 		t.Fatalf("create product: %v", err)

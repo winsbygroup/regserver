@@ -188,4 +188,3 @@ func (s *Service) computeHash(machineCode, expDate, maintExpDate, maxVersion str
 	regStr := buildRegistrationString(machineCode, expDate, maintExpDate, maxVersion, featStr)
 	return computeRegistrationHash(regStr, s.registrationSecret)
 }
-

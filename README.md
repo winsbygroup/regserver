@@ -26,15 +26,18 @@ a complete web interface for administering these resources and viewing license a
 
 - **Go 1.24+** with Echo v4 HTTP router
 - **SQLite** with WAL mode
-- **Templ** + **HTMX** for web UI
-- **DaisyUI/Tailwind CSS** via CDN (no build step required)
-- **Tom Select** for searchable dropdowns (via CDN)
+- **sqlx** database extensions (https://github.com/jmoiron/sqlx)
+- **Templ** + **HTMX** for web UI (https://templ.guide/) (https://htmx.org/)
+- **DaisyUI/Tailwind CSS** via CDN (no build step required) (https://daisyui.com/)
+- **Tom Select** for searchable dropdowns (via CDN) (https://tom-select.js.org/)
 - **Task** for `make`-like task management (https://taskfile.dev/)
 
 ## Quick Start (from source)
 
 ```bash
-# (install go)
+# Install go
+https://go.dev/doc/install
+
 # Install go dependencies
 go mod tidy
 go install github.com/a-h/templ/cmd/templ@latest
@@ -43,8 +46,8 @@ go install github.com/a-h/templ/cmd/templ@latest
 task build
 # Or: templ generate && go build -o ./dist/regserver ./cmd/regserver
 
-# Run
-./dist/regserver
+# Run (with sample data loaded)
+./dist/regserver -demo
 ```
 
 Server starts on `:8080`.
@@ -524,7 +527,7 @@ guide covering:
 - Firewall and security setup
 - Backup strategies
 
-## Demo Mode (Render.com Free Tier)
+## Demo Mode
 
 The `-demo` flag loads sample data when creating a new database. This is useful for:
 
@@ -850,14 +853,4 @@ but with the commercial rights for SaaS reserved for the copyright holder.
 
 # Contributing
 
-This project is not currently accepting external pull requests or code contributions.
-
-However, GitHub Issues are welcome for:
-
-- Bug reports
-- Feature requests
-- Clarification questions
-- Documentation improvements
-- Discussion about future direction
-
-If you encounter a problem or have an idea that could improve the project, please open an issue.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

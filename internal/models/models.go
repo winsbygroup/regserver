@@ -60,8 +60,8 @@ type License struct {
 	MaxProductVersion   string `db:"max_product_version"`
 
 	// Related entities
-	Customer *Customer        `db:"-"`
-	Product  *Product         `db:"-"`
+	Customer *Customer         `db:"-"`
+	Product  *Product          `db:"-"`
 	Features []*LicenseFeature `db:"-"`
 }
 

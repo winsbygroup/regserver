@@ -45,13 +45,13 @@ type Handler struct {
 
 // NewHandler creates a new web handler
 func NewHandler(
-		svc *admin.Service,
-		productSvc *product.Service,
-		featureSvc *feature.Service,
-		featureValSvc *featurevalue.Service,
-		machineSvc *machine.Service,
-		regSvc *registration.Service,
-		activationSvc *activation.Service,
+	svc *admin.Service,
+	productSvc *product.Service,
+	featureSvc *feature.Service,
+	featureValSvc *featurevalue.Service,
+	machineSvc *machine.Service,
+	regSvc *registration.Service,
+	activationSvc *activation.Service,
 ) *Handler {
 	return &Handler{
 		svc:           svc,
@@ -649,13 +649,13 @@ func (h *Handler) GetLicenses(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid customer ID")
 	}
 
-	regs, err := h.svc.GetLicenses(ctx, customerID)
+	lics, err := h.svc.GetLicenses(ctx, customerID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	viewRegs := h.convertLicenses(ctx, regs)
-	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
+	viewLics := h.convertLicenses(ctx, lics)
+	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
 }
 
 func (h *Handler) NewLicenseForm(c echo.Context) error {
@@ -684,20 +684,20 @@ func (h *Handler) EditLicenseForm(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid product ID")
 	}
 
-	regs, err := h.svc.GetLicenses(ctx, customerID)
+	lics, err := h.svc.GetLicenses(ctx, customerID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	var reg *license.License
-	for i := range regs {
-		if regs[i].ProductID == productID {
-			reg = &regs[i]
+	var lic *license.License
+	for i, item := range lics {
+		if item.ProductID == productID {
+			lic = &lics[i]
 			break
 		}
 	}
 
-	if reg == nil {
+	if lic == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "License not found")
 	}
 
@@ -707,8 +707,8 @@ func (h *Handler) EditLicenseForm(c echo.Context) error {
 		products = append(products, *prod)
 	}
 
-	viewReg := FromDomainLicense(*reg, prod.ProductName)
-	return components.LicenseForm(&viewReg, customerID, FromDomainProducts(products)).Render(ctx, c.Response())
+	viewLic := FromDomainLicense(*lic, prod.ProductName)
+	return components.LicenseForm(&viewLic, customerID, FromDomainProducts(products)).Render(ctx, c.Response())
 }
 
 func (h *Handler) CreateLicense(c echo.Context) error {
@@ -778,14 +778,14 @@ func (h *Handler) CreateLicense(c echo.Context) error {
 		return h.renderLicenseFormWithError(c, ctx, license, customerID, err)
 	}
 
-	regs, err := h.svc.GetLicenses(ctx, customerID)
+	lics, err := h.svc.GetLicenses(ctx, customerID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "License created successfully", "type": "success"}}`)
-	viewRegs := h.convertLicenses(ctx, regs)
-	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
+	viewLics := h.convertLicenses(ctx, lics)
+	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
 }
 
 func (h *Handler) UpdateLicense(c echo.Context) error {
@@ -857,14 +857,14 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 		return h.renderLicenseFormWithError(c, ctx, license, customerID, err)
 	}
 
-	regs, err := h.svc.GetLicenses(ctx, customerID)
+	lics, err := h.svc.GetLicenses(ctx, customerID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "License updated successfully", "type": "success"}}`)
-	viewRegs := h.convertLicenses(ctx, regs)
-	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
+	viewLics := h.convertLicenses(ctx, lics)
+	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
 }
 
 // renderLicenseFormWithError re-renders the license form with appropriate field errors
@@ -923,14 +923,14 @@ func (h *Handler) DeleteLicense(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	regs, err := h.svc.GetLicenses(ctx, customerID)
+	lics, err := h.svc.GetLicenses(ctx, customerID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	setTriggerWithData(c, `{"showToast": {"message": "License deleted successfully", "type": "success"}}`)
-	viewRegs := h.convertLicenses(ctx, regs)
-	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
+	viewLics := h.convertLicenses(ctx, lics)
+	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
 }
 
 // --------------------------
@@ -1264,15 +1264,15 @@ func (h *Handler) Index(c echo.Context) error {
 	return pages.Index(FromDomainCustomers(customers), selectedCustomerID).Render(ctx, c.Response())
 }
 
-func (h *Handler) convertLicenses(ctx context.Context, regs []license.License) []License {
-	result := make([]License, len(regs))
-	for i, reg := range regs {
-		prod, _ := h.svc.GetProduct(ctx, reg.ProductID)
+func (h *Handler) convertLicenses(ctx context.Context, lics []license.License) []License {
+	result := make([]License, len(lics))
+	for i, lic := range lics {
+		prod, _ := h.svc.GetProduct(ctx, lic.ProductID)
 		productName := ""
 		if prod != nil {
 			productName = prod.ProductName
 		}
-		result[i] = FromDomainLicense(reg, productName)
+		result[i] = FromDomainLicense(lic, productName)
 	}
 	return result
 }

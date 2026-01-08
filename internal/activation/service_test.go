@@ -10,9 +10,9 @@ import (
 
 	"winsbygroup.com/regserver/internal/activation"
 	"winsbygroup.com/regserver/internal/customer"
-	"winsbygroup.com/regserver/internal/license"
 	"winsbygroup.com/regserver/internal/feature"
 	"winsbygroup.com/regserver/internal/featurevalue"
+	"winsbygroup.com/regserver/internal/license"
 	"winsbygroup.com/regserver/internal/machine"
 	"winsbygroup.com/regserver/internal/product"
 	"winsbygroup.com/regserver/internal/registration"
@@ -236,7 +236,7 @@ func TestActivate_ExpiredMachineDoesNotCount(t *testing.T) {
 	_, _ = licenseSvc.Create(ctx, &license.License{
 		CustomerID:          cust.CustomerID,
 		ProductID:           prod.ProductID,
-		LicenseKey:    "REG-GUID-123",
+		LicenseKey:          "REG-GUID-123",
 		LicenseCount:        1,
 		IsSubscription:      false,
 		LicenseTerm:         365,
