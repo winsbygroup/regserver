@@ -1,5 +1,9 @@
 # Registration Service (regserver)
 
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://regserver.onrender.com/web)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/License-O'Sassy-blue)](https://osaasy.dev/)
+
 A complete software license registration process for **desktop applications**. It provides APIs for client app software 
 activation and administrative management of customers, products, licenses, and machine registrations. It also includes 
 a complete web interface for administering these resources and viewing license activity and expirations.
@@ -839,7 +843,8 @@ This allows the same /web/customers endpoint to work for:
 
 # License
 
-This project is licensed under the **MIT License**.
+This project is licensed under the **O'Saasy License**. Basically… the MIT do-whatever-you-want license, 
+but with the commercial rights for SaaS reserved for the copyright holder.
 
 ---
 
