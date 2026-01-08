@@ -382,7 +382,7 @@ if (customerSelect && typeof TomSelect !== 'undefined') {
         create: false,
         sortField: { field: 'text', direction: 'asc' },
         onChange: function(value) {
-            loadCustomerRegistrations(value);
+            loadCustomerLicenses(value);
         }
     });
 }

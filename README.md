@@ -1,6 +1,6 @@
 # Registration Service (regserver)
 
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://regserver.onrender.com/web)
+[![Live Demo](https://img.shields.io/badge/Demo-live-brightgreen)](https://regserver.onrender.com/web)
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-O'Sassy-blue)](https://osaasy.dev/)
 

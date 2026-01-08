@@ -11,7 +11,7 @@ func RegisterRoutes(e *echo.Group, h *Handler) {
 	e.POST("/login", h.Login)
 	e.POST("/logout", h.Logout)
 
-	// Registrations
+	// Dashboard
 	e.GET("/", h.Index)
 	e.GET("", h.Index)
 
@@ -40,12 +40,12 @@ func RegisterRoutes(e *echo.Group, h *Handler) {
 	e.DELETE("/products/:id/features/:featureId", h.DeleteFeature)
 
 	// Licenses
-	e.GET("/licenses/:customerID", h.GetRegistrations)
-	e.GET("/licenses/:customerID/new", h.NewRegistrationForm)
-	e.POST("/licenses/:customerID", h.CreateRegistration)
-	e.GET("/licenses/:customerID/:productID/edit", h.EditRegistrationForm)
-	e.PUT("/licenses/:customerID/:productID", h.UpdateRegistration)
-	e.DELETE("/licenses/:customerID/:productID", h.DeleteRegistration)
+	e.GET("/licenses/:customerID", h.GetLicenses)
+	e.GET("/licenses/:customerID/new", h.NewLicenseForm)
+	e.POST("/licenses/:customerID", h.CreateLicense)
+	e.GET("/licenses/:customerID/:productID/edit", h.EditLicenseForm)
+	e.PUT("/licenses/:customerID/:productID", h.UpdateLicense)
+	e.DELETE("/licenses/:customerID/:productID", h.DeleteLicense)
 
 	// Product Features (customer values)
 	e.GET("/features/:customerID/:productID", h.GetProductFeatures)

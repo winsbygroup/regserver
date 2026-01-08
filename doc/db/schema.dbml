@@ -47,7 +47,7 @@ Table license {
   license_term INTEGER [not null]
   start_date VARCHAR(10)
   expiration_date VARCHAR(10)
-  maint_expiration_date VARCHAR(10) [not null, default: "9998-12-31"]
+  maint_expiration_date VARCHAR(10) [not null, default: "9999-12-31"]
   max_product_version VARCHAR(255)
 
   indexes {

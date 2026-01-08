@@ -78,7 +78,7 @@ func FromDomainLicense(lic license.License, productName string) vm.License {
 		ProductName:         productName,
 		LicenseKey:          lic.LicenseKey,
 		LicenseCount:        lic.LicenseCount,
-		IsSubscription:      lic.IsSubscription != 0,
+		IsSubscription:      lic.IsSubscription,
 		LicenseTerm:         lic.LicenseTerm,
 		StartDate:           lic.StartDate,
 		ExpirationDate:      lic.ExpirationDate,

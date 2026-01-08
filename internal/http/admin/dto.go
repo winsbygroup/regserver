@@ -46,7 +46,7 @@ type CreateLicenseRequest struct {
 	CustomerID          int64  `json:"customerId"`
 	ProductID           int64  `json:"productId"`
 	LicenseCount        int    `json:"licenseCount"`
-	IsSubscription      int    `json:"isSubscription"`
+	IsSubscription      bool   `json:"isSubscription"`
 	LicenseTerm         int    `json:"licenseTerm"`
 	StartDate           string `json:"startDate"`
 	ExpirationDate      string `json:"expirationDate"`
@@ -56,7 +56,7 @@ type CreateLicenseRequest struct {
 
 type UpdateLicenseRequest struct {
 	LicenseCount        int    `json:"licenseCount"`
-	IsSubscription      int    `json:"isSubscription"`
+	IsSubscription      bool   `json:"isSubscription"`
 	LicenseTerm         int    `json:"licenseTerm"`
 	StartDate           string `json:"startDate"`
 	ExpirationDate      string `json:"expirationDate"`

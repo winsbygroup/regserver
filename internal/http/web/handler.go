@@ -29,6 +29,9 @@ import (
 // errInvalidVersion is a sentinel error for invalid version format
 var errInvalidVersion = fmt.Errorf("invalid version format")
 
+// errInvalidSubscriptionTerm is a sentinel error for subscription licenses without a valid term
+var errInvalidSubscriptionTerm = fmt.Errorf("subscription requires term > 0")
+
 // Handler handles web UI requests
 type Handler struct {
 	svc           *admin.Service
@@ -636,10 +639,10 @@ func (h *Handler) DeleteFeature(c echo.Context) error {
 }
 
 // --------------------------
-// Registrations (Customer Products)
+// Licenses
 // --------------------------
 
-func (h *Handler) GetRegistrations(c echo.Context) error {
+func (h *Handler) GetLicenses(c echo.Context) error {
 	ctx := c.Request().Context()
 	customerID, err := strconv.ParseInt(c.Param("customerID"), 10, 64)
 	if err != nil {
@@ -655,7 +658,7 @@ func (h *Handler) GetRegistrations(c echo.Context) error {
 	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
 }
 
-func (h *Handler) NewRegistrationForm(c echo.Context) error {
+func (h *Handler) NewLicenseForm(c echo.Context) error {
 	ctx := c.Request().Context()
 	customerID, err := strconv.ParseInt(c.Param("customerID"), 10, 64)
 	if err != nil {
@@ -670,7 +673,7 @@ func (h *Handler) NewRegistrationForm(c echo.Context) error {
 	return components.LicenseForm(nil, customerID, FromDomainProducts(products)).Render(ctx, c.Response())
 }
 
-func (h *Handler) EditRegistrationForm(c echo.Context) error {
+func (h *Handler) EditLicenseForm(c echo.Context) error {
 	ctx := c.Request().Context()
 	customerID, err := strconv.ParseInt(c.Param("customerID"), 10, 64)
 	if err != nil {
@@ -695,7 +698,7 @@ func (h *Handler) EditRegistrationForm(c echo.Context) error {
 	}
 
 	if reg == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Registration not found")
+		return echo.NewHTTPError(http.StatusNotFound, "License not found")
 	}
 
 	prod, _ := h.svc.GetProduct(ctx, productID)
@@ -708,7 +711,7 @@ func (h *Handler) EditRegistrationForm(c echo.Context) error {
 	return components.LicenseForm(&viewReg, customerID, FromDomainProducts(products)).Render(ctx, c.Response())
 }
 
-func (h *Handler) CreateRegistration(c echo.Context) error {
+func (h *Handler) CreateLicense(c echo.Context) error {
 	ctx := c.Request().Context()
 	customerID, err := strconv.ParseInt(c.Param("customerID"), 10, 64)
 	if err != nil {
@@ -718,10 +721,7 @@ func (h *Handler) CreateRegistration(c echo.Context) error {
 	productID, _ := strconv.ParseInt(c.FormValue("product_id"), 10, 64)
 	licenseCount, _ := strconv.Atoi(c.FormValue("license_count"))
 	licenseTerm, _ := strconv.Atoi(c.FormValue("license_term"))
-	isSubscription := 0
-	if c.FormValue("is_subscription") == "on" {
-		isSubscription = 1
-	}
+	isSubscription := c.FormValue("license_type") == "subscription"
 
 	req := &admin.CreateLicenseRequest{
 		ProductID:           productID,
@@ -734,12 +734,27 @@ func (h *Handler) CreateRegistration(c echo.Context) error {
 		MaxProductVersion:   strings.TrimSpace(c.FormValue("max_product_version")),
 	}
 
+	// Validate subscription requires term > 0
+	if isSubscription && licenseTerm <= 0 {
+		license := &vm.License{
+			ProductID:           productID,
+			LicenseCount:        licenseCount,
+			IsSubscription:      isSubscription,
+			LicenseTerm:         licenseTerm,
+			StartDate:           req.StartDate,
+			ExpirationDate:      req.ExpirationDate,
+			MaintExpirationDate: req.MaintExpirationDate,
+			MaxProductVersion:   req.MaxProductVersion,
+		}
+		return h.renderLicenseFormWithError(c, ctx, license, customerID, errInvalidSubscriptionTerm)
+	}
+
 	// Validate MaxProductVersion format
 	if !product.IsValidVersion(req.MaxProductVersion) {
 		license := &vm.License{
 			ProductID:           productID,
 			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription == 1,
+			IsSubscription:      isSubscription,
 			LicenseTerm:         licenseTerm,
 			StartDate:           req.StartDate,
 			ExpirationDate:      req.ExpirationDate,
@@ -753,7 +768,7 @@ func (h *Handler) CreateRegistration(c echo.Context) error {
 		license := &vm.License{
 			ProductID:           productID,
 			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription == 1,
+			IsSubscription:      isSubscription,
 			LicenseTerm:         licenseTerm,
 			StartDate:           req.StartDate,
 			ExpirationDate:      req.ExpirationDate,
@@ -768,12 +783,12 @@ func (h *Handler) CreateRegistration(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "Registration created successfully", "type": "success"}}`)
+	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "License created successfully", "type": "success"}}`)
 	viewRegs := h.convertLicenses(ctx, regs)
 	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
 }
 
-func (h *Handler) UpdateRegistration(c echo.Context) error {
+func (h *Handler) UpdateLicense(c echo.Context) error {
 	ctx := c.Request().Context()
 	customerID, err := strconv.ParseInt(c.Param("customerID"), 10, 64)
 	if err != nil {
@@ -786,10 +801,7 @@ func (h *Handler) UpdateRegistration(c echo.Context) error {
 
 	licenseCount, _ := strconv.Atoi(c.FormValue("license_count"))
 	licenseTerm, _ := strconv.Atoi(c.FormValue("license_term"))
-	isSubscription := 0
-	if c.FormValue("is_subscription") == "on" {
-		isSubscription = 1
-	}
+	isSubscription := c.FormValue("license_type") == "subscription"
 
 	req := &admin.UpdateLicenseRequest{
 		LicenseCount:        licenseCount,
@@ -801,12 +813,27 @@ func (h *Handler) UpdateRegistration(c echo.Context) error {
 		MaxProductVersion:   strings.TrimSpace(c.FormValue("max_product_version")),
 	}
 
+	// Validate subscription requires term > 0
+	if isSubscription && licenseTerm <= 0 {
+		license := &vm.License{
+			ProductID:           productID,
+			LicenseCount:        licenseCount,
+			IsSubscription:      isSubscription,
+			LicenseTerm:         licenseTerm,
+			StartDate:           req.StartDate,
+			ExpirationDate:      req.ExpirationDate,
+			MaintExpirationDate: req.MaintExpirationDate,
+			MaxProductVersion:   req.MaxProductVersion,
+		}
+		return h.renderLicenseFormWithError(c, ctx, license, customerID, errInvalidSubscriptionTerm)
+	}
+
 	// Validate MaxProductVersion format
 	if !product.IsValidVersion(req.MaxProductVersion) {
 		license := &vm.License{
 			ProductID:           productID,
 			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription == 1,
+			IsSubscription:      isSubscription,
 			LicenseTerm:         licenseTerm,
 			StartDate:           req.StartDate,
 			ExpirationDate:      req.ExpirationDate,
@@ -820,7 +847,7 @@ func (h *Handler) UpdateRegistration(c echo.Context) error {
 		license := &vm.License{
 			ProductID:           productID,
 			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription == 1,
+			IsSubscription:      isSubscription,
 			LicenseTerm:         licenseTerm,
 			StartDate:           req.StartDate,
 			ExpirationDate:      req.ExpirationDate,
@@ -835,7 +862,7 @@ func (h *Handler) UpdateRegistration(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "Registration updated successfully", "type": "success"}}`)
+	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "License updated successfully", "type": "success"}}`)
 	viewRegs := h.convertLicenses(ctx, regs)
 	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
 }
@@ -847,6 +874,8 @@ func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context
 	switch {
 	case err == errInvalidVersion:
 		errors["max_product_version"] = "Must be empty or in #.#.# format (e.g., 1.0.0)"
+	case err == errInvalidSubscriptionTerm:
+		errors["license_term"] = "Subscription licenses require a term greater than 0"
 	case sqlite.IsUniqueConstraintError(err):
 		errors["product_id"] = "This customer already has a license for this product"
 	default:
@@ -879,7 +908,7 @@ func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context
 	return components.LicenseFormWithErrors(formData).Render(ctx, c.Response())
 }
 
-func (h *Handler) DeleteRegistration(c echo.Context) error {
+func (h *Handler) DeleteLicense(c echo.Context) error {
 	ctx := c.Request().Context()
 	customerID, err := strconv.ParseInt(c.Param("customerID"), 10, 64)
 	if err != nil {
@@ -899,7 +928,7 @@ func (h *Handler) DeleteRegistration(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	setTriggerWithData(c, `{"showToast": {"message": "Registration deleted successfully", "type": "success"}}`)
+	setTriggerWithData(c, `{"showToast": {"message": "License deleted successfully", "type": "success"}}`)
 	viewRegs := h.convertLicenses(ctx, regs)
 	return components.LicensesTable(customerID, viewRegs).Render(ctx, c.Response())
 }

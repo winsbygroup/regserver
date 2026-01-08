@@ -5,7 +5,7 @@ type License struct {
 	ProductID           int64  `db:"product_id"`
 	LicenseKey          string `db:"license_key"`
 	LicenseCount        int    `db:"license_count"`
-	IsSubscription      int    `db:"is_subscription"`
+	IsSubscription      bool   `db:"is_subscription"`
 	LicenseTerm         int    `db:"license_term"`
 	StartDate           string `db:"start_date"`
 	ExpirationDate      string `db:"expiration_date"`

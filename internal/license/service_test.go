@@ -53,10 +53,10 @@ func TestLicenseLifecycle(t *testing.T) {
 		CustomerID:          c.CustomerID,
 		ProductID:           p1.ProductID,
 		LicenseCount:        5,
-		IsSubscription:      0,
+		IsSubscription:      false,
 		LicenseTerm:         365,
 		LicenseKey:          "LIC-123",
-		MaintExpirationDate: "9998-12-31",
+		MaintExpirationDate: "9999-12-31",
 	}
 
 	if _, err := licSvc.Create(ctx, lic); err != nil {

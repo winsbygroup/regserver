@@ -54,7 +54,7 @@ templ ProductsTable(products []vm.Product) {
 										hx-delete={ fmt.Sprintf("/web/products/%d", product.ProductID) }
 										hx-target="#products-table-container"
 										hx-swap="innerHTML"
-										hx-confirm={ fmt.Sprintf("Are you sure you want to delete '%s'? This will also delete all features and registrations.", product.ProductName) }
+										hx-confirm={ fmt.Sprintf("Are you sure you want to delete '%s'? This will also delete all product features and customer licenses.", product.ProductName) }
 										title="Delete"
 									>
 										@IconTrash("h-4 w-4")

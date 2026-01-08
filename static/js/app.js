@@ -59,14 +59,14 @@ document.addEventListener('DOMContentLoaded', function() {
 			create: false,
 			sortField: { field: 'text', direction: 'asc' },
 			onChange: function(value) {
-				loadCustomerRegistrations(value);
+				loadCustomerLicenses(value);
 			}
 		});
 
-		// If customer was pre-selected via URL param, load their registrations
+		// If customer was pre-selected via URL param, load their licenses
 		if (preselected) {
 			ts.setValue(preselected, true); // true = silent (don't trigger onChange yet)
-			loadCustomerRegistrations(preselected);
+			loadCustomerLicenses(preselected);
 		}
 	}
 });
@@ -175,14 +175,14 @@ document.body.addEventListener('showToast', function(evt) {
 	showToast(evt.detail.message, evt.detail.type);
 });
 
-// Registrations page state
+// Licenses page state
 var currentCustomerID = null;
 var currentProductID = null;
 
-function loadCustomerRegistrations(customerID) {
+function loadCustomerLicenses(customerID) {
 	if (!customerID) {
-		document.getElementById('registrations-container').innerHTML =
-			'<div class="text-center py-12 text-base-content/60">Select a customer to view their product registrations</div>';
+		document.getElementById('licenses-container').innerHTML =
+			'<div class="text-center py-12 text-base-content/60">Select a customer to view their licenses</div>';
 		document.getElementById('features-container').classList.add('hidden');
 		currentCustomerID = null;
 		currentProductID = null;
@@ -194,7 +194,7 @@ function loadCustomerRegistrations(customerID) {
 	document.getElementById('features-container').classList.add('hidden');
 
 	htmx.ajax('GET', '/web/licenses/' + customerID, {
-		target: '#registrations-container',
+		target: '#licenses-container',
 		swap: 'innerHTML'
 	});
 }
@@ -221,10 +221,10 @@ function selectProduct(productID, licenseKey) {
 
 	// Highlight selected row and get product name
 	var productName = '';
-	document.querySelectorAll('#registrations-table tbody tr').forEach(function(row) {
+	document.querySelectorAll('#licenses-table tbody tr').forEach(function(row) {
 		row.classList.remove('selected');
 	});
-	var selectedRow = document.querySelector('#registrations-table tbody tr[data-product-id="' + productID + '"]');
+	var selectedRow = document.querySelector('#licenses-table tbody tr[data-product-id="' + productID + '"]');
 	if (selectedRow) {
 		selectedRow.classList.add('selected');
 		// Get product name from first cell
@@ -250,8 +250,8 @@ function openMachinesModal(customerID, productID) {
 
 // Re-initialize after HTMX swaps
 document.body.addEventListener('htmx:afterSwap', function(evt) {
-	if (evt.detail.target.id === 'registrations-container') {
-		// Reset product selection when registrations reload
+	if (evt.detail.target.id === 'licenses-container') {
+		// Reset product selection when licenses reload
 		currentProductID = null;
 		var featuresContainer = document.getElementById('features-container');
 		if (featuresContainer) {
@@ -273,21 +273,83 @@ function toggleAllowedValues() {
 	}
 }
 
-// Registration form: auto-calculate expiration dates for subscription licenses
-function calcExpirationDates() {
-	var isSubscription = document.getElementById('is-subscription');
-	if (!isSubscription || !isSubscription.checked) return;
+// License form: update UI based on license type (perpetual vs subscription)
+function updateLicenseTypeUI() {
+	var licenseTypeRadio = document.querySelector('input[name="license_type"]:checked');
+	if (!licenseTypeRadio) return;
 
-	var startDate = document.getElementById('start-date').value;
-	var licenseTerm = parseInt(document.getElementById('license-term').value) || 0;
+	var isSubscription = licenseTypeRadio.value === 'subscription';
+	var termContainer = document.getElementById('license-term-container');
+	var maintContainer = document.getElementById('maint-expiration-container');
+	var termInput = document.getElementById('license-term');
+	var expirationInput = document.getElementById('expiration-date');
+	var maintInput = document.getElementById('maint-expiration-date');
+	var startDateInput = document.getElementById('start-date');
 
-	if (!startDate || licenseTerm <= 0) return;
+	if (!termContainer || !maintContainer) return;
 
-	var date = new Date(startDate);
-	date.setMonth(date.getMonth() + licenseTerm);
-	date.setDate(date.getDate() - 1);
+	if (isSubscription) {
+		// Subscription: show term, hide maint (auto-set to match expiration)
+		termContainer.classList.remove('hidden');
+		maintContainer.classList.add('hidden');
 
-	var expDate = date.toISOString().split('T')[0];
-	document.getElementById('expiration-date').value = expDate;
-	document.getElementById('maint-expiration-date').value = expDate;
+		// Auto-calculate expiration from start + term
+		var startDate = startDateInput ? startDateInput.value : '';
+		var licenseTerm = termInput ? parseInt(termInput.value) || 0 : 0;
+
+		if (startDate && licenseTerm > 0) {
+			var date = new Date(startDate);
+			date.setMonth(date.getMonth() + licenseTerm);
+			date.setDate(date.getDate() - 1);
+			var expDate = date.toISOString().split('T')[0];
+			if (expirationInput) expirationInput.value = expDate;
+			if (maintInput) maintInput.value = expDate;
+		}
+	} else {
+		// Perpetual: hide term (set to 0), show maint
+		termContainer.classList.add('hidden');
+		maintContainer.classList.remove('hidden');
+		if (termInput) {
+			termInput.value = '0';
+		}
+
+		// Set expiration to far future if empty or if switching from subscription
+		if (expirationInput && (!expirationInput.value || expirationInput.value < '9999-01-01')) {
+			expirationInput.value = '9999-12-31';
+		}
+	}
+}
+
+// Initialize license form UI on modal open
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+	if (evt.detail.target.id === 'modal-content') {
+		// Check if this is a license form
+		var licenseTypeRadio = document.querySelector('input[name="license_type"]');
+		if (licenseTypeRadio) {
+			updateLicenseTypeUI();
+			// Add form validation for subscription term
+			var form = document.querySelector('#modal-content form');
+			if (form) {
+				form.addEventListener('submit', validateLicenseForm);
+			}
+		}
+	}
+});
+
+// Validate license form before submit
+function validateLicenseForm(evt) {
+	var licenseTypeRadio = document.querySelector('input[name="license_type"]:checked');
+	if (!licenseTypeRadio) return true;
+
+	if (licenseTypeRadio.value === 'subscription') {
+		var termInput = document.getElementById('license-term');
+		var term = termInput ? parseInt(termInput.value) || 0 : 0;
+		if (term <= 0) {
+			evt.preventDefault();
+			showToast('Subscription licenses require a license term greater than 0', 'error');
+			termInput.focus();
+			return false;
+		}
+	}
+	return true;
 }

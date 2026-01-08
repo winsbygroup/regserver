@@ -32,7 +32,7 @@ templ LicensesTable(customerID int64, licenses []vm.License) {
 				@EmptyState("No licenses found. Click 'Add License' to create one.")
 			} else {
 				<div class="overflow-x-auto">
-					<table id="registrations-table" class="table table-zebra table-sm">
+					<table id="licenses-table" class="table table-zebra table-sm">
 						<thead>
 							<tr>
 								<th>Product</th>
@@ -80,7 +80,7 @@ templ LicensesTable(customerID int64, licenses []vm.License) {
 											<button
 												class="btn btn-ghost btn-xs text-error"
 												hx-delete={ fmt.Sprintf("/web/licenses/%d/%d", customerID, lic.ProductID) }
-												hx-target="#registrations-container"
+												hx-target="#licenses-container"
 												hx-swap="innerHTML"
 												hx-confirm={ fmt.Sprintf("Are you sure you want to delete the '%s' license? This will also remove all machine registrations and invalidate the liense key", lic.ProductName) }
 												title="Delete"
@@ -148,7 +148,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 		} else {
 			hx-put={ fmt.Sprintf("/web/licenses/%d/%d", data.CustomerID, data.License.ProductID) }
 		}
-		hx-target="#registrations-container"
+		hx-target="#licenses-container"
 		hx-swap="innerHTML"
 	>
 		<div class="space-y-4">
@@ -183,6 +183,37 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 					</label>
 				}
 			</div>
+			<div>
+				<label class="label">License Type *</label>
+				<div class="flex gap-6">
+					<label class="label cursor-pointer gap-2">
+						<input
+							type="radio"
+							name="license_type"
+							value="perpetual"
+							class="radio radio-sm"
+							if data.License == nil || !data.License.IsSubscription {
+								checked
+							}
+							onchange="updateLicenseTypeUI()"
+						/>
+						<span>Perpetual</span>
+					</label>
+					<label class="label cursor-pointer gap-2">
+						<input
+							type="radio"
+							name="license_type"
+							value="subscription"
+							class="radio radio-sm"
+							if data.License != nil && data.License.IsSubscription {
+								checked
+							}
+							onchange="updateLicenseTypeUI()"
+						/>
+						<span>Subscription</span>
+					</label>
+				</div>
+			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div>
 					<label class="label">License Count *</label>
@@ -200,17 +231,16 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						</label>
 					}
 				</div>
-				<div>
+				<div id="license-term-container">
 					<label class="label">License Term (months) *</label>
 					<input
 						type="number"
 						name="license_term"
 						id="license-term"
 						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["license_term"] != "") }
-						min="1"
+						min="0"
 						value={ getLicenseTerm(data.License) }
-						required
-						onchange="calcExpirationDates()"
+						onchange="updateLicenseTypeUI()"
 					/>
 					if data.Errors["license_term"] != "" {
 						<label class="label">
@@ -218,21 +248,6 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						</label>
 					}
 				</div>
-			</div>
-			<div>
-				<label class="label cursor-pointer justify-start gap-3">
-					<input
-						type="checkbox"
-						name="is_subscription"
-						id="is-subscription"
-						class="checkbox checkbox-lg"
-						if data.License != nil && data.License.IsSubscription {
-							checked
-						}
-						onchange="calcExpirationDates()"
-					/>
-					<span>Subscription License</span>
-				</label>
 			</div>
 			<div class="grid grid-cols-3 gap-4">
 				<div>
@@ -244,7 +259,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["start_date"] != "") }
 						value={ getLicenseStartDate(data.License) }
 						required
-						onchange="calcExpirationDates()"
+						onchange="updateLicenseTypeUI()"
 					/>
 					if data.Errors["start_date"] != "" {
 						<label class="label">
@@ -268,7 +283,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						</label>
 					}
 				</div>
-				<div>
+				<div id="maint-expiration-container">
 					<label class="label">Maint. Expiration *</label>
 					<input
 						type="date"
@@ -276,7 +291,6 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						id="maint-expiration-date"
 						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["maint_expiration_date"] != "") }
 						value={ getLicenseMaintExpirationDate(data.License) }
-						required
 					/>
 					if data.Errors["maint_expiration_date"] != "" {
 						<label class="label">

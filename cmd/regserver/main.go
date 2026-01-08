@@ -39,6 +39,9 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 	cfg.DemoMode = *demoFlag
+	if cfg.DemoMode {
+		log.Println("**DEMO MODE**")
+	}
 
 	//
 	// Build server (Echo, DB, services, etc.)

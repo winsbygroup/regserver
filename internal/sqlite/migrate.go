@@ -94,7 +94,7 @@ func defineMigrations() []darwin.Migration {
 			license_term INTEGER NOT NULL,
 			start_date VARCHAR(10),
 			expiration_date VARCHAR(10),
-			maint_expiration_date VARCHAR(10) NOT NULL DEFAULT '9998-12-31',
+			maint_expiration_date VARCHAR(10) NOT NULL DEFAULT '9999-12-31',
 			max_product_version VARCHAR(255),
 			CONSTRAINT pk_license PRIMARY KEY (customer_id, product_id),
 			FOREIGN KEY (customer_id) REFERENCES customer (customer_id),

@@ -15,11 +15,11 @@ INSERT INTO product (product_id, product_name, product_guid, latest_version, dow
 -- Licenses
 -- Acme: DataMapper Pro - 25 seats, perpetual with maintenance
 INSERT INTO license (customer_id, product_id, license_key, license_count, is_subscription, license_term, start_date, expiration_date, maint_expiration_date, max_product_version) VALUES
-(1, 1, '11111111-1111-1111-1111-111111111111', 25, 0, 0, '2024-01-01', '9998-12-31', '2025-12-31', '');
+(1, 1, '11111111-1111-1111-1111-111111111111', 25, 0, 0, '2024-01-01', '9999-12-31', '2025-12-31', '');
 
 -- Acme: ReportBuilder - 10 seats, perpetual, no maintenance
 INSERT INTO license (customer_id, product_id, license_key, license_count, is_subscription, license_term, start_date, expiration_date, maint_expiration_date, max_product_version) VALUES
-(1, 2, '22222222-2222-2222-2222-222222222222', 10, 0, 0, '2024-01-01', '9998-12-31', '9998-12-31', '');
+(1, 2, '22222222-2222-2222-2222-222222222222', 10, 0, 0, '2024-01-01', '9999-12-31', '9999-12-31', '');
 
 -- TechStart: DataMapper Pro - 10 seats, annual subscription
 INSERT INTO license (customer_id, product_id, license_key, license_count, is_subscription, license_term, start_date, expiration_date, maint_expiration_date, max_product_version) VALUES
@@ -27,7 +27,7 @@ INSERT INTO license (customer_id, product_id, license_key, license_count, is_sub
 
 -- Global Industries: DataMapper Pro - 50 seats, perpetual, version-locked
 INSERT INTO license (customer_id, product_id, license_key, license_count, is_subscription, license_term, start_date, expiration_date, maint_expiration_date, max_product_version) VALUES
-(3, 1, '44444444-4444-4444-4444-444444444444', 50, 0, 0, '2023-01-01', '9998-12-31', '2024-12-31', '2.5');
+(3, 1, '44444444-4444-4444-4444-444444444444', 50, 0, 0, '2023-01-01', '9999-12-31', '2024-12-31', '2.5.0');
 
 -- Global Industries: ReportBuilder - 5 seats, monthly subscription
 INSERT INTO license (customer_id, product_id, license_key, license_count, is_subscription, license_term, start_date, expiration_date, maint_expiration_date, max_product_version) VALUES
@@ -99,9 +99,9 @@ INSERT INTO registration (machine_id, product_id, expiration_date, registration_
 
 -- Acme ReportBuilder registrations (3 of 10 seats used)
 INSERT INTO registration (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version) VALUES
-(1, 2, '9998-12-31', 'demo-hash-acme-rb-001', '2024-02-01', '2024-11-01', '2.0.0'),
-(2, 2, '9998-12-31', 'demo-hash-acme-rb-002', '2024-02-15', '2024-10-15', '2.0.0'),
-(5, 2, '9998-12-31', 'demo-hash-acme-rb-003', '2024-03-01', '2024-12-01', '2.0.0');
+(1, 2, '9999-12-31', 'demo-hash-acme-rb-001', '2024-02-01', '2024-11-01', '2.0.0'),
+(2, 2, '9999-12-31', 'demo-hash-acme-rb-002', '2024-02-15', '2024-10-15', '2.0.0'),
+(5, 2, '9999-12-31', 'demo-hash-acme-rb-003', '2024-03-01', '2024-12-01', '2.0.0');
 
 -- TechStart DataMapper Pro registrations (3 of 10 seats used)
 INSERT INTO registration (machine_id, product_id, expiration_date, registration_hash, first_registration_date, last_registration_date, installed_version) VALUES
