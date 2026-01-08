@@ -16,21 +16,32 @@ func dateExpiredIf(expired bool) string {
 templ LicensesTable(customerID int64, licenses []vm.License) {
 	<div class="card bg-base-100 shadow-sm">
 		<div class="card-body">
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="card-title text-lg">Licenses <span class="text-sm font-normal text-base-content/60">(select row for details)</span></h2>
-				<button
-					class="btn btn-primary btn-sm"
-					hx-get={ fmt.Sprintf("/web/licenses/%d/new", customerID) }
-					hx-target="#modal-content"
-					hx-swap="innerHTML"
-				>
-					@IconPlus("h-4 w-4 mr-1")
-					Add License
-				</button>
-			</div>
 			if len(licenses) == 0 {
+				<div class="flex justify-end mb-4">
+					<button
+						class="btn btn-primary btn-sm"
+						hx-get={ fmt.Sprintf("/web/licenses/%d/new", customerID) }
+						hx-target="#modal-content"
+						hx-swap="innerHTML"
+					>
+						@IconPlus("h-4 w-4 mr-1")
+						Add License
+					</button>
+				</div>
 				@EmptyState("No licenses found. Click 'Add License' to create one.")
 			} else {
+				<div class="flex justify-between items-center mb-4">
+					<h2 class="card-title text-lg">Licenses <span class="text-sm font-normal text-base-content/60">(select row for details)</span></h2>
+					<button
+						class="btn btn-primary btn-sm"
+						hx-get={ fmt.Sprintf("/web/licenses/%d/new", customerID) }
+						hx-target="#modal-content"
+						hx-swap="innerHTML"
+					>
+						@IconPlus("h-4 w-4 mr-1")
+						Add License
+					</button>
+				</div>
 				<div class="overflow-x-auto">
 					<table id="licenses-table" class="table table-zebra table-sm">
 						<thead>

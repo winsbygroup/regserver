@@ -9,7 +9,7 @@ import (
 // Version is the application version. Can be overridden at build time via:
 //
 //	go build -ldflags "-X winsbygroup.com/regserver/internal/version.Version=1.2.3"
-var Version = "1.0"
+var Version = "1.1"
 
 // RepoURL is the project repository URL. Can be overridden at build time via:
 //

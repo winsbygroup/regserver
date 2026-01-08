@@ -49,7 +49,7 @@ func defineMigrations() []darwin.Migration {
 			customer_id INTEGER NOT NULL,
 			machine_code VARCHAR(255) NOT NULL,
 			user_name VARCHAR(255),
-			FOREIGN KEY (customer_id) REFERENCES customer (customer_id) 
+			FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE CASCADE
 		);`},
 
 		{Version: 1.03, Description: "Create Index 'idx_machine_customer_id'", Script: `
@@ -74,7 +74,7 @@ func defineMigrations() []darwin.Migration {
 				last_registration_date VARCHAR(10),
 				installed_version VARCHAR(20) NOT NULL DEFAULT '',
 				CONSTRAINT pk_registration PRIMARY KEY (machine_id, product_id),
-				FOREIGN KEY (product_id) REFERENCES product (product_id),
+				FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE CASCADE,
 				FOREIGN KEY (machine_id) REFERENCES machine (machine_id) ON DELETE CASCADE
 		);`},
 
@@ -97,8 +97,8 @@ func defineMigrations() []darwin.Migration {
 			maint_expiration_date VARCHAR(10) NOT NULL DEFAULT '9999-12-31',
 			max_product_version VARCHAR(255),
 			CONSTRAINT pk_license PRIMARY KEY (customer_id, product_id),
-			FOREIGN KEY (customer_id) REFERENCES customer (customer_id),
-			FOREIGN KEY (product_id) REFERENCES product (product_id)
+			FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE CASCADE,
+			FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE CASCADE
 		);`},
 
 		{Version: 1.09, Description: "Create Index 'idx_license_customer_id'", Script: `

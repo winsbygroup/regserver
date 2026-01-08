@@ -515,6 +515,9 @@ one will be created and schema applied.
 Note that all GUID columns are created with COLLATE NOCASE (for case-insensitive comparisons) and converted to lower-case
 when saved to the database.
 
+**Cascade Deletes:** Deleting a customer removes all their machines, licenses, and registrations. Deleting a product
+removes all licenses, features, and registrations for that product. This is enforced at the database level.
+
 ## Production (DigitalOcean / Linux VPS)
 
 For production deployment with `Caddy` and `systemd`, see **[DEPLOYMENT.md](doc/DEPLOYMENT.md)** for a complete step-by-step 
