@@ -293,6 +293,12 @@ function updateLicenseTypeUI() {
 		termContainer.classList.remove('hidden');
 		maintContainer.classList.add('hidden');
 
+		// Term is required and must be >= 1 for subscriptions
+		if (termInput) {
+			termInput.required = true;
+			termInput.min = '1';
+		}
+
 		// Auto-calculate expiration from start + term
 		var startDate = startDateInput ? startDateInput.value : '';
 		var licenseTerm = termInput ? parseInt(termInput.value) || 0 : 0;
@@ -311,6 +317,8 @@ function updateLicenseTypeUI() {
 		maintContainer.classList.remove('hidden');
 		if (termInput) {
 			termInput.value = '0';
+			termInput.required = false;
+			termInput.min = '0';
 		}
 
 		// Set expiration to far future if empty or if switching from subscription
@@ -327,29 +335,6 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
 		var licenseTypeRadio = document.querySelector('input[name="license_type"]');
 		if (licenseTypeRadio) {
 			updateLicenseTypeUI();
-			// Add form validation for subscription term
-			var form = document.querySelector('#modal-content form');
-			if (form) {
-				form.addEventListener('submit', validateLicenseForm);
-			}
 		}
 	}
 });
-
-// Validate license form before submit
-function validateLicenseForm(evt) {
-	var licenseTypeRadio = document.querySelector('input[name="license_type"]:checked');
-	if (!licenseTypeRadio) return true;
-
-	if (licenseTypeRadio.value === 'subscription') {
-		var termInput = document.getElementById('license-term');
-		var term = termInput ? parseInt(termInput.value) || 0 : 0;
-		if (term <= 0) {
-			evt.preventDefault();
-			showToast('Subscription licenses require a license term greater than 0', 'error');
-			termInput.focus();
-			return false;
-		}
-	}
-	return true;
-}

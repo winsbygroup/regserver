@@ -132,14 +132,15 @@ type LicenseFormData struct {
 	CustomerID int64
 	Products   []vm.Product
 	Errors     map[string]string // field name -> error message
+	IsNew      bool              // true when creating (not editing) a license
 }
 
 templ LicenseForm(license *vm.License, customerID int64, products []vm.Product) {
-	@LicenseFormWithErrors(LicenseFormData{License: license, CustomerID: customerID, Products: products})
+	@LicenseFormWithErrors(LicenseFormData{License: license, CustomerID: customerID, Products: products, IsNew: license == nil})
 }
 
 templ LicenseFormWithErrors(data LicenseFormData) {
-	if data.License == nil && len(data.Products) == 0 {
+	if data.IsNew && len(data.Products) == 0 {
 		<h3 class="font-bold text-lg mb-4">New License</h3>
 		<p class="text-base-content/70 mb-4">Customer already has licenses for all products.</p>
 		<div class="modal-action">
@@ -147,14 +148,14 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 		</div>
 	} else {
 	<h3 class="font-bold text-lg mb-4">
-		if data.License == nil {
+		if data.IsNew {
 			New License
 		} else {
 			Edit License
 		}
 	</h3>
 	<form
-		if data.License == nil {
+		if data.IsNew {
 			hx-post={ fmt.Sprintf("/web/licenses/%d", data.CustomerID) }
 		} else {
 			hx-put={ fmt.Sprintf("/web/licenses/%d/%d", data.CustomerID, data.License.ProductID) }
@@ -169,7 +170,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 					name="product_id"
 					class={ "select select-bordered select-lg w-full", templ.KV("select-error", data.Errors["product_id"] != "") }
 					required
-					if data.License != nil {
+					if !data.IsNew {
 						disabled
 					}
 				>
@@ -185,7 +186,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						</option>
 					}
 				</select>
-				if data.License != nil {
+				if !data.IsNew {
 					<input type="hidden" name="product_id" value={ fmt.Sprintf("%d", data.License.ProductID) }/>
 				}
 				if data.Errors["product_id"] != "" {
@@ -242,7 +243,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						</label>
 					}
 				</div>
-				<div id="license-term-container">
+				<div id="license-term-container" class={ templ.KV("hidden", data.License == nil || !data.License.IsSubscription) }>
 					<label class="label">License Term (months) *</label>
 					<input
 						type="number"
@@ -302,6 +303,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 						id="maint-expiration-date"
 						class={ "input input-bordered input-lg w-full", templ.KV("input-error", data.Errors["maint_expiration_date"] != "") }
 						value={ getLicenseMaintExpirationDate(data.License) }
+						required
 					/>
 					if data.Errors["maint_expiration_date"] != "" {
 						<label class="label">
@@ -329,7 +331,7 @@ templ LicenseFormWithErrors(data LicenseFormData) {
 		<div class="modal-action">
 			<button type="button" class="btn" onclick="closeModal()">Cancel</button>
 			<button type="submit" class="btn btn-primary">
-				if data.License == nil {
+				if data.IsNew {
 					Create
 				} else {
 					Save

@@ -29,9 +29,6 @@ import (
 // errInvalidVersion is a sentinel error for invalid version format
 var errInvalidVersion = fmt.Errorf("invalid version format")
 
-// errInvalidSubscriptionTerm is a sentinel error for subscription licenses without a valid term
-var errInvalidSubscriptionTerm = fmt.Errorf("subscription requires term > 0")
-
 // Handler handles web UI requests
 type Handler struct {
 	svc           *admin.Service
@@ -743,21 +740,6 @@ func (h *Handler) CreateLicense(c echo.Context) error {
 		MaxProductVersion:   strings.TrimSpace(c.FormValue("max_product_version")),
 	}
 
-	// Validate subscription requires term > 0
-	if isSubscription && licenseTerm <= 0 {
-		license := &vm.License{
-			ProductID:           productID,
-			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription,
-			LicenseTerm:         licenseTerm,
-			StartDate:           req.StartDate,
-			ExpirationDate:      req.ExpirationDate,
-			MaintExpirationDate: req.MaintExpirationDate,
-			MaxProductVersion:   req.MaxProductVersion,
-		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, errInvalidSubscriptionTerm)
-	}
-
 	// Validate MaxProductVersion format
 	if !product.IsValidVersion(req.MaxProductVersion) {
 		license := &vm.License{
@@ -770,7 +752,7 @@ func (h *Handler) CreateLicense(c echo.Context) error {
 			MaintExpirationDate: req.MaintExpirationDate,
 			MaxProductVersion:   req.MaxProductVersion,
 		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, errInvalidVersion)
+		return h.renderLicenseFormWithError(c, ctx, license, customerID, true, errInvalidVersion)
 	}
 
 	if _, err := h.svc.CreateLicense(ctx, customerID, req); err != nil {
@@ -784,7 +766,7 @@ func (h *Handler) CreateLicense(c echo.Context) error {
 			MaintExpirationDate: req.MaintExpirationDate,
 			MaxProductVersion:   req.MaxProductVersion,
 		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, err)
+		return h.renderLicenseFormWithError(c, ctx, license, customerID, true, err)
 	}
 
 	lics, err := h.svc.GetLicenses(ctx, customerID)
@@ -822,21 +804,6 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 		MaxProductVersion:   strings.TrimSpace(c.FormValue("max_product_version")),
 	}
 
-	// Validate subscription requires term > 0
-	if isSubscription && licenseTerm <= 0 {
-		license := &vm.License{
-			ProductID:           productID,
-			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription,
-			LicenseTerm:         licenseTerm,
-			StartDate:           req.StartDate,
-			ExpirationDate:      req.ExpirationDate,
-			MaintExpirationDate: req.MaintExpirationDate,
-			MaxProductVersion:   req.MaxProductVersion,
-		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, errInvalidSubscriptionTerm)
-	}
-
 	// Validate MaxProductVersion format
 	if !product.IsValidVersion(req.MaxProductVersion) {
 		license := &vm.License{
@@ -849,7 +816,7 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 			MaintExpirationDate: req.MaintExpirationDate,
 			MaxProductVersion:   req.MaxProductVersion,
 		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, errInvalidVersion)
+		return h.renderLicenseFormWithError(c, ctx, license, customerID, false, errInvalidVersion)
 	}
 
 	if err := h.svc.UpdateLicense(ctx, customerID, productID, req); err != nil {
@@ -863,7 +830,7 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 			MaintExpirationDate: req.MaintExpirationDate,
 			MaxProductVersion:   req.MaxProductVersion,
 		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, err)
+		return h.renderLicenseFormWithError(c, ctx, license, customerID, false, err)
 	}
 
 	lics, err := h.svc.GetLicenses(ctx, customerID)
@@ -877,14 +844,12 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 }
 
 // renderLicenseFormWithError re-renders the license form with appropriate field errors
-func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context, license *vm.License, customerID int64, err error) error {
+func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context, license *vm.License, customerID int64, isNew bool, err error) error {
 	errors := make(map[string]string)
 
 	switch {
 	case err == errInvalidVersion:
 		errors["max_product_version"] = "Must be empty or in #.#.# format (e.g., 1.0.0)"
-	case err == errInvalidSubscriptionTerm:
-		errors["license_term"] = "Subscription licenses require a term greater than 0"
 	case sqlite.IsUniqueConstraintError(err):
 		errors["product_id"] = "This customer already has a license for this product"
 	default:
@@ -911,6 +876,7 @@ func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context
 		CustomerID: customerID,
 		Products:   viewProducts,
 		Errors:     errors,
+		IsNew:      isNew,
 	}
 	c.Response().Header().Set("HX-Retarget", "#modal-content")
 	c.Response().Header().Set("HX-Reswap", "innerHTML")
