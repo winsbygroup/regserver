@@ -1056,12 +1056,31 @@ func (h *Handler) DeleteMachineRegistration(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid product ID")
 	}
 
+	// Get machine to find customerID before deleting
+	machine, err := h.machineSvc.Get(ctx, machineID)
+	if err != nil || machine == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Machine not found")
+	}
+	customerID := machine.CustomerID
+
 	if err := h.svc.DeleteMachineRegistration(ctx, machineID, productID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
+	// Return updated modal content
+	prod, err := h.productSvc.Get(ctx, productID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Product not found")
+	}
+
+	machines, err := h.machineSvc.GetForLicense(ctx, customerID, productID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	viewMachines := h.convertMachines(ctx, machines, productID)
 	setTriggerWithData(c, `{"showToast": {"message": "Machine registration deleted successfully", "type": "success"}}`)
-	return c.NoContent(http.StatusOK)
+	return components.MachinesModal(customerID, productID, prod.ProductName, viewMachines).Render(ctx, c.Response())
 }
 
 func (h *Handler) ManualRegistrationForm(c echo.Context) error {

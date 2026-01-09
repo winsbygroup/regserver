@@ -58,8 +58,8 @@ templ MachinesModal(customerID int64, productID int64, productName string, machi
 								<button
 									class="btn btn-ghost btn-xs text-error"
 									hx-delete={ fmt.Sprintf("/web/machines/%d/%d", machine.MachineID, productID) }
-									hx-target={ fmt.Sprintf("#machine-%d", machine.MachineID) }
-									hx-swap="outerHTML"
+									hx-target="#modal-content"
+									hx-swap="innerHTML"
 									hx-confirm="Are you sure you want to delete this machine registration?"
 									title="Delete"
 								>
