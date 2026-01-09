@@ -49,6 +49,10 @@ func (s *Service) GetUnlicensed(ctx context.Context, customerID int64) ([]produc
 }
 
 func (s *Service) Create(ctx context.Context, lic *License) (*License, error) {
+	if err := lic.Validate(); err != nil {
+		return nil, err
+	}
+
 	err := s.WithTx(ctx, func(tx *sqlx.Tx) error {
 		return s.repo.Create(ctx, tx, lic)
 	})
@@ -65,6 +69,10 @@ func (s *Service) Create(ctx context.Context, lic *License) (*License, error) {
 }
 
 func (s *Service) Update(ctx context.Context, lic *License) error {
+	if err := lic.Validate(); err != nil {
+		return err
+	}
+
 	return s.WithTx(ctx, func(tx *sqlx.Tx) error {
 		return s.repo.Update(ctx, tx, lic)
 	})

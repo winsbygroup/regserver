@@ -2,6 +2,7 @@ package license_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -185,4 +186,231 @@ func TestGetExpiredLicenses(t *testing.T) {
 	if expired[0].CustomerName != "Acme Corp" {
 		t.Errorf("expected CustomerName 'Acme Corp', got %s", expired[0].CustomerName)
 	}
+}
+
+func TestLicenseValidation(t *testing.T) {
+	ctx := context.Background()
+	db := testutil.NewTestDB(t)
+
+	custSvc := customer.NewService(db)
+	prodSvc := product.NewService(db)
+	licSvc := license.NewService(db)
+
+	// Create customer and product for tests
+	c, _ := custSvc.Create(ctx, &customer.Customer{
+		CustomerName: "Test Co",
+		ContactName:  "Test User",
+		Email:        "test@test.com",
+	})
+
+	p, _ := prodSvc.Create(ctx, &product.Product{
+		ProductName: "Test Product",
+		ProductGUID: "TEST-GUID",
+	})
+
+	t.Run("subscription requires term greater than 0", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-SUB-ZERO",
+			LicenseCount:        1,
+			IsSubscription:      true,
+			LicenseTerm:         0,
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		_, err := licSvc.Create(ctx, lic)
+		if !errors.Is(err, license.ErrSubscriptionRequiresTerm) {
+			t.Errorf("expected ErrSubscriptionRequiresTerm, got %v", err)
+		}
+	})
+
+	t.Run("subscription with negative term fails", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-SUB-NEG",
+			LicenseCount:        1,
+			IsSubscription:      true,
+			LicenseTerm:         -1,
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		_, err := licSvc.Create(ctx, lic)
+		if !errors.Is(err, license.ErrSubscriptionRequiresTerm) {
+			t.Errorf("expected ErrSubscriptionRequiresTerm, got %v", err)
+		}
+	})
+
+	t.Run("perpetual license with term 0 succeeds", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-PERP-ZERO",
+			LicenseCount:        1,
+			IsSubscription:      false,
+			LicenseTerm:         0,
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		created, err := licSvc.Create(ctx, lic)
+		if err != nil {
+			t.Errorf("perpetual with term 0 should succeed, got %v", err)
+		}
+
+		// Clean up
+		licSvc.Delete(ctx, created.CustomerID, created.ProductID)
+	})
+
+	t.Run("invalid max product version fails", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-BAD-VER",
+			LicenseCount:        1,
+			IsSubscription:      false,
+			LicenseTerm:         0,
+			MaxProductVersion:   "invalid",
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		_, err := licSvc.Create(ctx, lic)
+		if !errors.Is(err, license.ErrInvalidMaxVersion) {
+			t.Errorf("expected ErrInvalidMaxVersion, got %v", err)
+		}
+	})
+
+	t.Run("valid max product version succeeds", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-GOOD-VER",
+			LicenseCount:        1,
+			IsSubscription:      false,
+			LicenseTerm:         0,
+			MaxProductVersion:   "1.2.3",
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		created, err := licSvc.Create(ctx, lic)
+		if err != nil {
+			t.Errorf("valid version should succeed, got %v", err)
+		}
+
+		// Clean up
+		licSvc.Delete(ctx, created.CustomerID, created.ProductID)
+	})
+
+	t.Run("empty max product version succeeds", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-EMPTY-VER",
+			LicenseCount:        1,
+			IsSubscription:      false,
+			LicenseTerm:         0,
+			MaxProductVersion:   "",
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		created, err := licSvc.Create(ctx, lic)
+		if err != nil {
+			t.Errorf("empty version should succeed, got %v", err)
+		}
+
+		// Clean up
+		licSvc.Delete(ctx, created.CustomerID, created.ProductID)
+	})
+
+	t.Run("subscription with valid term succeeds", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-SUB-OK",
+			LicenseCount:        1,
+			IsSubscription:      true,
+			LicenseTerm:         12,
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		created, err := licSvc.Create(ctx, lic)
+		if err != nil {
+			t.Errorf("subscription with valid term should succeed, got %v", err)
+		}
+
+		// Clean up
+		licSvc.Delete(ctx, created.CustomerID, created.ProductID)
+	})
+}
+
+func TestLicenseValidationOnUpdate(t *testing.T) {
+	ctx := context.Background()
+	db := testutil.NewTestDB(t)
+
+	custSvc := customer.NewService(db)
+	prodSvc := product.NewService(db)
+	licSvc := license.NewService(db)
+
+	// Create customer and product
+	c, _ := custSvc.Create(ctx, &customer.Customer{
+		CustomerName: "Update Test Co",
+		ContactName:  "Test User",
+		Email:        "test@update.com",
+	})
+
+	p, _ := prodSvc.Create(ctx, &product.Product{
+		ProductName: "Update Test Product",
+		ProductGUID: "UPDATE-GUID",
+	})
+
+	// Create a valid license first
+	lic := &license.License{
+		CustomerID:          c.CustomerID,
+		ProductID:           p.ProductID,
+		LicenseKey:          "LIC-UPDATE",
+		LicenseCount:        1,
+		IsSubscription:      false,
+		LicenseTerm:         0,
+		MaintExpirationDate: "2099-12-31",
+	}
+
+	created, err := licSvc.Create(ctx, lic)
+	if err != nil {
+		t.Fatalf("failed to create license: %v", err)
+	}
+
+	t.Run("update to invalid subscription fails", func(t *testing.T) {
+		updated := &license.License{
+			CustomerID:          created.CustomerID,
+			ProductID:           created.ProductID,
+			LicenseKey:          created.LicenseKey,
+			LicenseCount:        1,
+			IsSubscription:      true,
+			LicenseTerm:         0, // Invalid for subscription
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		err := licSvc.Update(ctx, updated)
+		if !errors.Is(err, license.ErrSubscriptionRequiresTerm) {
+			t.Errorf("expected ErrSubscriptionRequiresTerm, got %v", err)
+		}
+	})
+
+	t.Run("update to invalid version fails", func(t *testing.T) {
+		updated := &license.License{
+			CustomerID:          created.CustomerID,
+			ProductID:           created.ProductID,
+			LicenseKey:          created.LicenseKey,
+			LicenseCount:        1,
+			IsSubscription:      false,
+			LicenseTerm:         0,
+			MaxProductVersion:   "bad-version",
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		err := licSvc.Update(ctx, updated)
+		if !errors.Is(err, license.ErrInvalidMaxVersion) {
+			t.Errorf("expected ErrInvalidMaxVersion, got %v", err)
+		}
+	})
 }

@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -25,9 +26,6 @@ import (
 	"winsbygroup.com/regserver/templates/components"
 	"winsbygroup.com/regserver/templates/pages"
 )
-
-// errInvalidVersion is a sentinel error for invalid version format
-var errInvalidVersion = fmt.Errorf("invalid version format")
 
 // Handler handles web UI requests
 type Handler struct {
@@ -740,21 +738,6 @@ func (h *Handler) CreateLicense(c echo.Context) error {
 		MaxProductVersion:   strings.TrimSpace(c.FormValue("max_product_version")),
 	}
 
-	// Validate MaxProductVersion format
-	if !product.IsValidVersion(req.MaxProductVersion) {
-		license := &vm.License{
-			ProductID:           productID,
-			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription,
-			LicenseTerm:         licenseTerm,
-			StartDate:           req.StartDate,
-			ExpirationDate:      req.ExpirationDate,
-			MaintExpirationDate: req.MaintExpirationDate,
-			MaxProductVersion:   req.MaxProductVersion,
-		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, true, errInvalidVersion)
-	}
-
 	if _, err := h.svc.CreateLicense(ctx, customerID, req); err != nil {
 		license := &vm.License{
 			ProductID:           productID,
@@ -804,21 +787,6 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 		MaxProductVersion:   strings.TrimSpace(c.FormValue("max_product_version")),
 	}
 
-	// Validate MaxProductVersion format
-	if !product.IsValidVersion(req.MaxProductVersion) {
-		license := &vm.License{
-			ProductID:           productID,
-			LicenseCount:        licenseCount,
-			IsSubscription:      isSubscription,
-			LicenseTerm:         licenseTerm,
-			StartDate:           req.StartDate,
-			ExpirationDate:      req.ExpirationDate,
-			MaintExpirationDate: req.MaintExpirationDate,
-			MaxProductVersion:   req.MaxProductVersion,
-		}
-		return h.renderLicenseFormWithError(c, ctx, license, customerID, false, errInvalidVersion)
-	}
-
 	if err := h.svc.UpdateLicense(ctx, customerID, productID, req); err != nil {
 		license := &vm.License{
 			ProductID:           productID,
@@ -844,14 +812,16 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 }
 
 // renderLicenseFormWithError re-renders the license form with appropriate field errors
-func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context, license *vm.License, customerID int64, isNew bool, err error) error {
-	errors := make(map[string]string)
+func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context, lic *vm.License, customerID int64, isNew bool, err error) error {
+	fieldErrors := make(map[string]string)
 
 	switch {
-	case err == errInvalidVersion:
-		errors["max_product_version"] = "Must be empty or in #.#.# format (e.g., 1.0.0)"
+	case errors.Is(err, license.ErrInvalidMaxVersion):
+		fieldErrors["max_product_version"] = "Must be empty or in #.#.# format (e.g., 1.0.0)"
+	case errors.Is(err, license.ErrSubscriptionRequiresTerm):
+		fieldErrors["license_term"] = "Subscription licenses require a term greater than 0"
 	case sqlite.IsUniqueConstraintError(err):
-		errors["product_id"] = "This customer already has a license for this product"
+		fieldErrors["product_id"] = "This customer already has a license for this product"
 	default:
 		// Unknown error - show toast instead
 		setTriggerWithData(c, fmt.Sprintf(`{"showToast": {"message": %q, "type": "error"}}`, "Failed to save license"))
@@ -863,19 +833,19 @@ func (h *Handler) renderLicenseFormWithError(c echo.Context, ctx context.Context
 	viewProducts := FromDomainProducts(unlicensedProducts)
 
 	// For edit, include current product in list
-	if license.ProductID != 0 {
-		prod, _ := h.productSvc.Get(ctx, license.ProductID)
+	if lic.ProductID != 0 {
+		prod, _ := h.productSvc.Get(ctx, lic.ProductID)
 		if prod != nil {
-			license.ProductName = prod.ProductName
+			lic.ProductName = prod.ProductName
 			viewProducts = append([]vm.Product{FromDomainProduct(*prod)}, viewProducts...)
 		}
 	}
 
 	formData := components.LicenseFormData{
-		License:    license,
+		License:    lic,
 		CustomerID: customerID,
 		Products:   viewProducts,
-		Errors:     errors,
+		Errors:     fieldErrors,
 		IsNew:      isNew,
 	}
 	c.Response().Header().Set("HX-Retarget", "#modal-content")
