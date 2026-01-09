@@ -10,8 +10,11 @@ import (
 
 func NewTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
+	return NewTestDBAt(t, filepath.Join(t.TempDir(), "test.db"))
+}
 
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+func NewTestDBAt(t *testing.T, dbPath string) *sqlx.DB {
+	t.Helper()
 
 	db, err := sqlx.Open("sqlite3", dbPath)
 	if err != nil {

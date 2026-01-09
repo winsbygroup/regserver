@@ -143,7 +143,7 @@ templ LicenseForm(license *vm.License, customerID int64, products []vm.Product) 
 templ LicenseFormWithErrors(data LicenseFormData) {
 	if data.IsNew && len(data.Products) == 0 {
 		<h3 class="font-bold text-lg mb-4">New License</h3>
-		<p class="text-base-content/70 mb-4">Customer already has licenses for all products.</p>
+		<p class="text-base-content/70 mb-4">No additional products are available for licensing.</p>
 		<div class="modal-action">
 			<button type="button" class="btn" onclick="closeModal()">Close</button>
 		</div>

@@ -298,8 +298,34 @@ Query parameters:
 ]
 ```
 
-Results include licenses where either the license expiration date OR the maintenance expiration date is before the 
+Results include licenses where either the license expiration date OR the maintenance expiration date is before the
 specified date. Results are sorted by expiration date descending (most recently expired first).
+
+### Backup
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/admin/backup` | Create a database backup |
+
+**Response:**
+```json
+{
+  "filename": "2025-01-09_16.30.00_regdump.sql.gz",
+  "path": "/path/to/db/backups/2025-01-09_16.30.00_regdump.sql.gz",
+  "size": 4523
+}
+```
+
+Creates a gzip-compressed SQL dump of the database. Backups are saved to a `backups/` directory relative to the database file. The SQL dump includes all schema definitions and data, wrapped in a transaction for safe restoration.
+
+**To restore a backup:**
+```bash
+# Linux/macOS
+gunzip -c 2025-01-09_16.30.00_regdump.sql.gz | sqlite3 restored.db
+
+# Windows (PowerShell)
+7z e -so backup.sql.gz | sqlite3 restored.db
+```
 
 ---
 
@@ -329,6 +355,7 @@ See [Authentication Configuration](#authentication-configuration) for details.
 - **Feature Values** - Configure customer-specific feature values (integer, string, or enum types)
 - **Machine Registrations** - View and manage individual machine activations
 - **Offline Registration** - Manual registration for customers without internet access
+- **Database Backup** - One-click backup from the sidebar (creates timestamped gzip-compressed SQL dump)
 
 ## Routes
 
@@ -341,6 +368,7 @@ See [Authentication Configuration](#authentication-configuration) for details.
 | `/web/licenses/:customerID` | Customer's product licenses |
 | `/web/features/:customerID/:productID` | Feature value configuration |
 | `/web/machines/:customerID/:productID` | Machine registration list |
+| `/web/backup` | Create database backup (POST) |
 
 ## Offline Registration
 
@@ -520,7 +548,7 @@ removes all licenses, features, and registrations for that product. This is enfo
 
 ## Production (DigitalOcean / Linux VPS)
 
-For production deployment with `Caddy` and `systemd`, see **[DEPLOYMENT.md](doc/DEPLOYMENT.md)** for a complete step-by-step 
+For production deployment with `Caddy` and `systemd`, see **[DEPLOYMENT.md](doc/DEPLOYMENT.md)** for a complete step-by-step
 guide covering:
 
 - Building Linux binaries
@@ -528,7 +556,191 @@ guide covering:
 - Setting up systemd services
 - Environment variable configuration
 - Firewall and security setup
-- Backup strategies
+
+## Automated Backups
+
+The `scripts/backup-to-cloud.sh` script automates database backups with optional cloud upload using [rclone](https://rclone.org/).
+
+### Summary of backup workflow:
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Cron/Systemd   │────▶│  backup-to-     │────▶│  Backblaze B2   │
+│  Timer          │     │  cloud.sh       │     │  (via rclone)   │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │  POST /api/     │
+                        │  admin/backup   │
+                        └────────┬────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │  Local .sql.gz  │
+                        │  backup file    │
+                        └─────────────────┘
+```
+
+### Prerequisites
+
+```bash
+# Install rclone (Linux)
+curl https://rclone.org/install.sh | sudo bash
+
+# Or via package manager
+sudo apt install rclone    # Debian/Ubuntu
+brew install rclone        # macOS
+```
+
+### Configure Cloud Storage (Backblaze B2)
+
+**1. Create B2 bucket and application key:**
+
+1. Log in to [Backblaze B2 Cloud Storage](https://secure.backblaze.com/b2_buckets.htm)
+2. Create a new bucket (e.g., `mycompany-regserver-backups`)
+   - Set to **Private**
+3. Go to **App Keys** and click **Add a New Application Key**
+   - Name: `regserver-backup`
+   - Allow access to bucket: select your bucket
+   - Type of access: **Read and Write**
+4. **Save the keyID and applicationKey** - the application key is only shown once!
+
+**2. Configure rclone with your B2 credentials:**
+
+```bash
+rclone config
+```
+
+Follow the prompts:
+```
+n) New remote
+name> b2
+Storage> b2  (or type the number for "Backblaze B2")
+account> YOUR_KEY_ID        # e.g., 0012345678abcdef0000000001
+key> YOUR_APPLICATION_KEY   # e.g., K001xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+hard_delete> (leave default)
+Edit advanced config> n
+```
+
+**3. Test the connection:**
+
+```bash
+# List buckets
+rclone lsd b2:
+
+# List contents of your backup bucket
+rclone ls b2:mycompany-regserver-backups
+```
+
+### Environment Setup
+
+Add to your `.env` file:
+
+```bash
+# Required
+ADMIN_API_KEY=your-admin-key
+
+# For cloud upload
+RCLONE_REMOTE=b2:your-bucket/regserver-backups
+
+# Optional
+REGSERVER_URL=http://localhost:8080   # Default
+BACKUP_RETAIN_DAYS=7                   # Days to keep local backups
+```
+
+### Manual Usage
+
+```bash
+# Local backup only
+./scripts/backup-to-cloud.sh
+
+# Backup and upload to cloud
+./scripts/backup-to-cloud.sh --upload
+
+# Backup, upload, and prune old local files
+./scripts/backup-to-cloud.sh --upload --prune
+```
+
+### Cron Job Setup
+
+Schedule automated backups using cron:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add one of these lines:
+
+# Daily at 2:00 AM - backup and upload
+0 2 * * * /opt/regserver/scripts/backup-to-cloud.sh --upload >> /var/log/regserver-backup.log 2>&1
+
+# Daily at 2:00 AM - backup, upload, and prune local files older than 7 days
+0 2 * * * /opt/regserver/scripts/backup-to-cloud.sh --upload --prune >> /var/log/regserver-backup.log 2>&1
+
+# Every 6 hours - more frequent backups
+0 */6 * * * /opt/regserver/scripts/backup-to-cloud.sh --upload >> /var/log/regserver-backup.log 2>&1
+```
+
+**Important:** Ensure the cron environment has access to required variables. Either:
+
+1. Source the .env file in your script (already handled by the script)
+2. Or define variables in crontab:
+   ```bash
+   ADMIN_API_KEY=your-key
+   RCLONE_REMOTE=b2:bucket/path
+   0 2 * * * /opt/regserver/scripts/backup-to-cloud.sh --upload
+   ```
+
+### Systemd Timer Alternative
+
+For systemd-based systems, you can use a timer instead of cron:
+
+```bash
+# /etc/systemd/system/regserver-backup.service
+[Unit]
+Description=RegServer Database Backup
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/regserver/scripts/backup-to-cloud.sh --upload --prune
+EnvironmentFile=/opt/regserver/.env
+User=regserver
+
+# /etc/systemd/system/regserver-backup.timer
+[Unit]
+Description=Daily RegServer Backup
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable the timer:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now regserver-backup.timer
+
+# Check status
+sudo systemctl list-timers | grep regserver
+```
+
+### Restore from Cloud Backup
+
+```bash
+# List available backups
+rclone ls b2:your-bucket/regserver-backups
+
+# Download a specific backup
+rclone copy b2:your-bucket/regserver-backups/2025-01-09_02.00.00_regdump.sql.gz ./
+
+# Restore to new database
+gunzip -c 2025-01-09_02.00.00_regdump.sql.gz | sqlite3 restored.db
+```
 
 ## Demo Mode
 

@@ -62,4 +62,7 @@ func RegisterRoutes(e *echo.Group, h *Handler) {
 	// Expirations
 	e.GET("/expirations", h.ListExpirations)
 	e.GET("/expirations/csv", h.ExportExpirationsCSV)
+
+	// Backup
+	e.POST("/backup", h.Backup)
 }

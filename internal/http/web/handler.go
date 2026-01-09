@@ -14,6 +14,7 @@ import (
 	"winsbygroup.com/regserver/internal/middleware"
 
 	"winsbygroup.com/regserver/internal/activation"
+	"winsbygroup.com/regserver/internal/backup"
 	"winsbygroup.com/regserver/internal/feature"
 	"winsbygroup.com/regserver/internal/featurevalue"
 	"winsbygroup.com/regserver/internal/http/admin"
@@ -36,6 +37,7 @@ type Handler struct {
 	machineSvc    *machine.Service
 	regSvc        *registration.Service
 	activationSvc *activation.Service
+	backupSvc     *backup.Service
 }
 
 // NewHandler creates a new web handler
@@ -47,6 +49,7 @@ func NewHandler(
 	machineSvc *machine.Service,
 	regSvc *registration.Service,
 	activationSvc *activation.Service,
+	backupSvc *backup.Service,
 ) *Handler {
 	return &Handler{
 		svc:           svc,
@@ -56,6 +59,7 @@ func NewHandler(
 		machineSvc:    machineSvc,
 		regSvc:        regSvc,
 		activationSvc: activationSvc,
+		backupSvc:     backupSvc,
 	}
 }
 
@@ -1288,4 +1292,21 @@ func (h *Handler) convertMachines(ctx context.Context, machines []machine.Machin
 		result[i] = FromDomainMachine(m, productID, regHash, expDate, firstRegDate, lastRegDate, installedVersion)
 	}
 	return result
+}
+
+// --------------------------
+// Backup
+// --------------------------
+
+// Backup creates a database backup and returns the result as a toast notification
+func (h *Handler) Backup(c echo.Context) error {
+	result, err := h.backupSvc.CreateBackup(c.Request().Context())
+	if err != nil {
+		setTriggerWithData(c, fmt.Sprintf(`{"showToast": {"message": %q, "type": "error"}}`, "Backup failed: "+err.Error()))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	msg := fmt.Sprintf("Backup created: %s (%d bytes)", result.Filename, result.Size)
+	setTriggerWithData(c, fmt.Sprintf(`{"showToast": {"message": %q, "type": "success"}}`, msg))
+	return c.NoContent(http.StatusOK)
 }

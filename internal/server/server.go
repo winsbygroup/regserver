@@ -15,6 +15,7 @@ import (
 	mwsvc "winsbygroup.com/regserver/internal/middleware"
 
 	"winsbygroup.com/regserver/internal/activation"
+	"winsbygroup.com/regserver/internal/backup"
 	"winsbygroup.com/regserver/internal/config"
 	"winsbygroup.com/regserver/internal/customer"
 	"winsbygroup.com/regserver/internal/demodata"
@@ -143,7 +144,8 @@ func Build(cfg *config.Config) (*Server, error) {
 		machineSvc,
 		registrationSvc,
 	)
-	adminHandler := adminhttp.NewHandler(adminSvc)
+	backupSvc := backup.NewService(db, cfg.DBPath)
+	adminHandler := adminhttp.NewHandler(adminSvc, backupSvc)
 
 	webHandler := webhttp.NewHandler(
 		adminSvc,
@@ -153,6 +155,7 @@ func Build(cfg *config.Config) (*Server, error) {
 		machineSvc,
 		registrationSvc,
 		activationSvc,
+		backupSvc,
 	)
 
 	//

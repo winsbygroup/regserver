@@ -2,7 +2,8 @@ unit machine;
 
 interface
 
-// note: this routine uses com and so coinitialize must have been called beforehand.
+// note: this routine uses com and so coinitialize must be called beforehand if
+// not in the main thread
 
 uses
   System.SysUtils,
@@ -51,7 +52,7 @@ begin
   Raw := WmiQuery('Win32_BaseBoard', 'SerialNumber') + '|' +
          WmiQuery('Win32_Processor', 'ProcessorId') + '|' +
          WmiQuery('Win32_OperatingSystem', 'SerialNumber') + '|' +
-         WmiQuery('Win32_LogicalDisk', 'VolumeSerialNumber', 'DeviceID="C:""');
+         WmiQuery('Win32_LogicalDisk', 'VolumeSerialNumber', 'DeviceID="C:"');
 
   HashBytes := THashSHA2.GetHashBytes(Raw);
   HashBase64 := TNetEncoding.Base64.EncodeBytesToString(HashBytes);

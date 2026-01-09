@@ -42,4 +42,7 @@ func RegisterRoutes(g *echo.Group, h *Handler) {
 
 	// Expirations
 	g.GET("/expirations", h.GetExpirations)
+
+	// Backup
+	g.POST("/backup", h.BackupDatabase)
 }

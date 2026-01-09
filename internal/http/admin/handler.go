@@ -6,14 +6,17 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+
+	"winsbygroup.com/regserver/internal/backup"
 )
 
 type Handler struct {
-	svc *Service
+	svc       *Service
+	backupSvc *backup.Service
 }
 
-func NewHandler(svc *Service) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(svc *Service, backupSvc *backup.Service) *Handler {
+	return &Handler{svc: svc, backupSvc: backupSvc}
 }
 
 // Customers
@@ -305,4 +308,14 @@ func (h *Handler) GetExpirations(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, out)
+}
+
+// Backup
+
+func (h *Handler) BackupDatabase(c echo.Context) error {
+	result, err := h.backupSvc.CreateBackup(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, result)
 }
