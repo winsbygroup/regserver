@@ -64,6 +64,15 @@ func NewHandler(
 	}
 }
 
+// getCustomerName returns the customer name for the given ID, or empty string if not found
+func (h *Handler) getCustomerName(ctx context.Context, customerID int64) string {
+	cust, err := h.svc.GetCustomer(ctx, customerID)
+	if err != nil || cust == nil {
+		return ""
+	}
+	return cust.CustomerName
+}
+
 // --------------------------
 // Authentication
 // --------------------------
@@ -655,7 +664,7 @@ func (h *Handler) GetLicenses(c echo.Context) error {
 	}
 
 	viewLics := h.convertLicenses(ctx, lics)
-	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
+	return components.LicensesTable(customerID, h.getCustomerName(ctx, customerID), viewLics).Render(ctx, c.Response())
 }
 
 func (h *Handler) NewLicenseForm(c echo.Context) error {
@@ -785,7 +794,7 @@ func (h *Handler) CreateLicense(c echo.Context) error {
 
 	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "License created successfully", "type": "success"}}`)
 	viewLics := h.convertLicenses(ctx, lics)
-	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
+	return components.LicensesTable(customerID, h.getCustomerName(ctx, customerID), viewLics).Render(ctx, c.Response())
 }
 
 func (h *Handler) UpdateLicense(c echo.Context) error {
@@ -864,7 +873,7 @@ func (h *Handler) UpdateLicense(c echo.Context) error {
 
 	setTriggerWithData(c, `{"closeModal": true, "showToast": {"message": "License updated successfully", "type": "success"}}`)
 	viewLics := h.convertLicenses(ctx, lics)
-	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
+	return components.LicensesTable(customerID, h.getCustomerName(ctx, customerID), viewLics).Render(ctx, c.Response())
 }
 
 // renderLicenseFormWithError re-renders the license form with appropriate field errors
@@ -930,7 +939,7 @@ func (h *Handler) DeleteLicense(c echo.Context) error {
 
 	setTriggerWithData(c, `{"showToast": {"message": "License deleted successfully", "type": "success"}}`)
 	viewLics := h.convertLicenses(ctx, lics)
-	return components.LicensesTable(customerID, viewLics).Render(ctx, c.Response())
+	return components.LicensesTable(customerID, h.getCustomerName(ctx, customerID), viewLics).Render(ctx, c.Response())
 }
 
 // --------------------------

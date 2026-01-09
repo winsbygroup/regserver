@@ -13,7 +13,7 @@ func dateExpiredIf(expired bool) string {
 	return ""
 }
 
-templ LicensesTable(customerID int64, licenses []vm.License) {
+templ LicensesTable(customerID int64, customerName string, licenses []vm.License) {
 	<div class="card bg-base-100 shadow-sm">
 		<div class="card-body">
 			if len(licenses) == 0 {
@@ -93,7 +93,7 @@ templ LicensesTable(customerID int64, licenses []vm.License) {
 												hx-delete={ fmt.Sprintf("/web/licenses/%d/%d", customerID, lic.ProductID) }
 												hx-target="#licenses-container"
 												hx-swap="innerHTML"
-												hx-confirm={ fmt.Sprintf("Are you sure you want to delete the '%s' license? This will also remove all machine registrations and invalidate the liense key", lic.ProductName) }
+												hx-confirm={ fmt.Sprintf("Are you sure you want to delete the '%s' license for '%s'?\n\nTHIS WILL PERMANENTLY INVALIDATE THEIR LICENSE KEY!", lic.ProductName, customerName) }
 												title="Delete"
 											>
 												@IconTrash("h-4 w-4")

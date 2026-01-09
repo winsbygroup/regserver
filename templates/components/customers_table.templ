@@ -54,7 +54,7 @@ templ CustomersTable(customers []vm.Customer) {
 										hx-delete={ fmt.Sprintf("/web/customers/%d", customer.CustomerID) }
 										hx-target="#customers-table-container"
 										hx-swap="innerHTML"
-										hx-confirm={ fmt.Sprintf("Are you sure you want to delete '%s'? This will also delete all their licenses.", customer.CustomerName) }
+										hx-confirm={ fmt.Sprintf("Are you sure you want to delete '%s'? This will also delete all their licenses, machines and registrations.", customer.CustomerName) }
 										title="Delete"
 									>
 										@IconTrash("h-4 w-4")
