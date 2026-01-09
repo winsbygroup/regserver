@@ -55,8 +55,10 @@ func TestLicenseLifecycle(t *testing.T) {
 		ProductID:           p1.ProductID,
 		LicenseCount:        5,
 		IsSubscription:      false,
-		LicenseTerm:         365,
+		LicenseTerm:         0,
 		LicenseKey:          "LIC-123",
+		StartDate:           "2024-01-01",
+		ExpirationDate:      "9999-12-31",
 		MaintExpirationDate: "9999-12-31",
 	}
 
@@ -119,6 +121,7 @@ func TestGetExpiredLicenses(t *testing.T) {
 		ProductID:           p1.ProductID,
 		LicenseKey:          "LIC-1",
 		LicenseCount:        1,
+		StartDate:           "2019-01-01",
 		ExpirationDate:      "2020-01-15",
 		MaintExpirationDate: "2020-01-15",
 	})
@@ -129,6 +132,7 @@ func TestGetExpiredLicenses(t *testing.T) {
 		ProductID:           p2.ProductID,
 		LicenseKey:          "LIC-2",
 		LicenseCount:        1,
+		StartDate:           "2020-01-01",
 		ExpirationDate:      "2021-06-30",
 		MaintExpirationDate: "2021-06-30",
 	})
@@ -139,6 +143,7 @@ func TestGetExpiredLicenses(t *testing.T) {
 		ProductID:           p2.ProductID,
 		LicenseKey:          "LIC-3",
 		LicenseCount:        1,
+		StartDate:           "2024-01-01",
 		ExpirationDate:      "2099-12-31",
 		MaintExpirationDate: "2099-12-31",
 	})
@@ -208,6 +213,76 @@ func TestLicenseValidation(t *testing.T) {
 		ProductGUID: "TEST-GUID",
 	})
 
+	// Required field validation tests
+	t.Run("license count must be greater than 0", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-ZERO-COUNT",
+			LicenseCount:        0,
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		_, err := licSvc.Create(ctx, lic)
+		if !errors.Is(err, license.ErrLicenseCountRequired) {
+			t.Errorf("expected ErrLicenseCountRequired, got %v", err)
+		}
+	})
+
+	t.Run("start date is required", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-NO-START",
+			LicenseCount:        1,
+			StartDate:           "",
+			ExpirationDate:      "2099-12-31",
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		_, err := licSvc.Create(ctx, lic)
+		if !errors.Is(err, license.ErrStartDateRequired) {
+			t.Errorf("expected ErrStartDateRequired, got %v", err)
+		}
+	})
+
+	t.Run("expiration date is required", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-NO-EXP",
+			LicenseCount:        1,
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "",
+			MaintExpirationDate: "2099-12-31",
+		}
+
+		_, err := licSvc.Create(ctx, lic)
+		if !errors.Is(err, license.ErrExpirationDateRequired) {
+			t.Errorf("expected ErrExpirationDateRequired, got %v", err)
+		}
+	})
+
+	t.Run("maintenance expiration date is required", func(t *testing.T) {
+		lic := &license.License{
+			CustomerID:          c.CustomerID,
+			ProductID:           p.ProductID,
+			LicenseKey:          "LIC-NO-MAINT",
+			LicenseCount:        1,
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
+			MaintExpirationDate: "",
+		}
+
+		_, err := licSvc.Create(ctx, lic)
+		if !errors.Is(err, license.ErrMaintExpirationRequired) {
+			t.Errorf("expected ErrMaintExpirationRequired, got %v", err)
+		}
+	})
+
+	// Subscription term validation tests
 	t.Run("subscription requires term greater than 0", func(t *testing.T) {
 		lic := &license.License{
 			CustomerID:          c.CustomerID,
@@ -216,6 +291,8 @@ func TestLicenseValidation(t *testing.T) {
 			LicenseCount:        1,
 			IsSubscription:      true,
 			LicenseTerm:         0,
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -233,6 +310,8 @@ func TestLicenseValidation(t *testing.T) {
 			LicenseCount:        1,
 			IsSubscription:      true,
 			LicenseTerm:         -1,
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -250,6 +329,8 @@ func TestLicenseValidation(t *testing.T) {
 			LicenseCount:        1,
 			IsSubscription:      false,
 			LicenseTerm:         0,
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -262,6 +343,7 @@ func TestLicenseValidation(t *testing.T) {
 		licSvc.Delete(ctx, created.CustomerID, created.ProductID)
 	})
 
+	// Max product version validation tests
 	t.Run("invalid max product version fails", func(t *testing.T) {
 		lic := &license.License{
 			CustomerID:          c.CustomerID,
@@ -271,6 +353,8 @@ func TestLicenseValidation(t *testing.T) {
 			IsSubscription:      false,
 			LicenseTerm:         0,
 			MaxProductVersion:   "invalid",
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -289,6 +373,8 @@ func TestLicenseValidation(t *testing.T) {
 			IsSubscription:      false,
 			LicenseTerm:         0,
 			MaxProductVersion:   "1.2.3",
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -310,6 +396,8 @@ func TestLicenseValidation(t *testing.T) {
 			IsSubscription:      false,
 			LicenseTerm:         0,
 			MaxProductVersion:   "",
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -330,6 +418,8 @@ func TestLicenseValidation(t *testing.T) {
 			LicenseCount:        1,
 			IsSubscription:      true,
 			LicenseTerm:         12,
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -371,6 +461,8 @@ func TestLicenseValidationOnUpdate(t *testing.T) {
 		LicenseCount:        1,
 		IsSubscription:      false,
 		LicenseTerm:         0,
+		StartDate:           "2024-01-01",
+		ExpirationDate:      "2099-12-31",
 		MaintExpirationDate: "2099-12-31",
 	}
 
@@ -387,6 +479,8 @@ func TestLicenseValidationOnUpdate(t *testing.T) {
 			LicenseCount:        1,
 			IsSubscription:      true,
 			LicenseTerm:         0, // Invalid for subscription
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 
@@ -405,6 +499,8 @@ func TestLicenseValidationOnUpdate(t *testing.T) {
 			IsSubscription:      false,
 			LicenseTerm:         0,
 			MaxProductVersion:   "bad-version",
+			StartDate:           "2024-01-01",
+			ExpirationDate:      "2099-12-31",
 			MaintExpirationDate: "2099-12-31",
 		}
 

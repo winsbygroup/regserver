@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"time"
 	vm "winsbygroup.com/regserver/internal/viewmodels"
 )
 
@@ -358,7 +359,7 @@ func getLicenseTerm(l *vm.License) string {
 
 func getLicenseStartDate(l *vm.License) string {
 	if l == nil {
-		return ""
+		return time.Now().Format("2006-01-02")
 	}
 	return l.StartDate
 }

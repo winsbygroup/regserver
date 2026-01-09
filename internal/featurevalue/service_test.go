@@ -43,9 +43,12 @@ func TestFeatureValueLifecycle(t *testing.T) {
 
 	// Create license (required for foreign key)
 	_, err = licenseSvc.Create(ctx, &license.License{
-		CustomerID:   c.CustomerID,
-		ProductID:    p.ProductID,
-		LicenseCount: 1,
+		CustomerID:          c.CustomerID,
+		ProductID:           p.ProductID,
+		LicenseCount:        1,
+		StartDate:           "2024-01-01",
+		ExpirationDate:      "2099-12-31",
+		MaintExpirationDate: "2099-12-31",
 	})
 	if err != nil {
 		t.Fatalf("create license: %v", err)
@@ -169,9 +172,12 @@ func TestFeatureValueUpsert(t *testing.T) {
 
 	// Create license (required for foreign key)
 	_, err = licenseSvc.Create(ctx, &license.License{
-		CustomerID:   c.CustomerID,
-		ProductID:    p.ProductID,
-		LicenseCount: 1,
+		CustomerID:          c.CustomerID,
+		ProductID:           p.ProductID,
+		LicenseCount:        1,
+		StartDate:           "2024-01-01",
+		ExpirationDate:      "2099-12-31",
+		MaintExpirationDate: "2099-12-31",
 	})
 	if err != nil {
 		t.Fatalf("create license: %v", err)

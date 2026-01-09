@@ -10,6 +10,10 @@ import (
 var (
 	ErrSubscriptionRequiresTerm = errors.New("subscription licenses require a term greater than 0")
 	ErrInvalidMaxVersion        = errors.New("max product version must be empty or in #.#.# format")
+	ErrStartDateRequired        = errors.New("start date is required")
+	ErrExpirationDateRequired   = errors.New("expiration date is required")
+	ErrMaintExpirationRequired  = errors.New("maintenance expiration date is required")
+	ErrLicenseCountRequired     = errors.New("license count must be greater than 0")
 )
 
 type License struct {
@@ -27,6 +31,18 @@ type License struct {
 
 // Validate checks business rules for a license
 func (l *License) Validate() error {
+	if l.LicenseCount <= 0 {
+		return ErrLicenseCountRequired
+	}
+	if l.StartDate == "" {
+		return ErrStartDateRequired
+	}
+	if l.ExpirationDate == "" {
+		return ErrExpirationDateRequired
+	}
+	if l.MaintExpirationDate == "" {
+		return ErrMaintExpirationRequired
+	}
 	if l.IsSubscription && l.LicenseTerm <= 0 {
 		return ErrSubscriptionRequiresTerm
 	}
