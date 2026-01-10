@@ -1298,15 +1298,12 @@ func (h *Handler) convertMachines(ctx context.Context, machines []machine.Machin
 // Backup
 // --------------------------
 
-// Backup creates a database backup and returns the result as a toast notification
+// Backup creates a database backup and returns it as a file download
 func (h *Handler) Backup(c echo.Context) error {
 	result, err := h.backupSvc.CreateBackup(c.Request().Context())
 	if err != nil {
-		setTriggerWithData(c, fmt.Sprintf(`{"showToast": {"message": %q, "type": "error"}}`, "Backup failed: "+err.Error()))
-		return c.NoContent(http.StatusInternalServerError)
+		return c.String(http.StatusInternalServerError, "Backup failed: "+err.Error())
 	}
 
-	msg := fmt.Sprintf("Backup created: %s (%d bytes)", result.Filename, result.Size)
-	setTriggerWithData(c, fmt.Sprintf(`{"showToast": {"message": %q, "type": "success"}}`, msg))
-	return c.NoContent(http.StatusOK)
+	return c.Attachment(result.Path, result.Filename)
 }

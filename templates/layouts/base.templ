@@ -142,16 +142,13 @@ templ Nav() {
 				</span>
 			</button>
 			<!-- Backup -->
-			<button
-				type="button"
-				class="btn btn-ghost btn-sm w-full justify-start gap-3"
-				hx-post="/web/backup"
-				hx-headers={ `{"X-CSRF-Token": "` + middleware.GetCSRF(ctx) + `"}` }
-				hx-swap="none"
-			>
-				@components.IconDownload("h-5 w-5")
-				Backup
-			</button>
+			<form method="POST" action="/web/backup">
+				<input type="hidden" name="_csrf" value={ middleware.GetCSRF(ctx) }/>
+				<button type="submit" class="btn btn-ghost btn-sm w-full justify-start gap-3">
+					@components.IconDownload("h-5 w-5")
+					Backup
+				</button>
+			</form>
 			<!-- Logout -->
 			<form method="POST" action="/web/logout">
 				<input type="hidden" name="_csrf" value={ middleware.GetCSRF(ctx) }/>
